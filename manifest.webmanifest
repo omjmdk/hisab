@@ -1,0 +1,17 @@
+{
+  "name": "Hisab – GST Billing",
+  "short_name": "Hisab",
+  "description": "Offline GST billing for shops: items with HSN and GST rates, tax invoices, PDF bills and GST reports.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#1B2350",
+  "theme_color": "#1B2350",
+  "lang": "en-IN",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

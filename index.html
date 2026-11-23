@@ -1,0 +1,1392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1B2350">
+<meta name="description" content="Offline GST billing for shops">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>Hisab – GST Billing</title>
+<style>
+:root{
+  --bg:#E9ECF2; --surface:#FFFFFF; --ink:#1B2350; --muted:#59618A; --line:#D3D8E4;
+  --head:#1B2350; --head-ink:#FFFFFF; --accent:#E0A526; --accent-ink:#2E2100;
+  --green:#2F6B4F; --red:#B3261E; --chip:#F2F4F9; --field:#F7F8FB;
+  --font:system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans","Noto Sans Oriya","Kalinga","Nirmala UI",sans-serif;
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#11152A; --surface:#1B2140; --ink:#E7EAF6; --muted:#9BA3C6; --line:#2D355B;
+    --head:#0B0F22; --head-ink:#F2F3FA; --accent:#F0B83A; --accent-ink:#2E2100;
+    --green:#62B38D; --red:#F08A80; --chip:#242B4E; --field:#151A33; color-scheme:dark;
+  }
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:16px;line-height:1.45;padding-bottom:84px}
+body.billing{padding-bottom:150px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--head)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+a{color:inherit}
+
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;background:var(--head);color:var(--head-ink);display:flex;align-items:center;gap:10px;padding:10px 16px}
+.brand{display:flex;align-items:baseline;gap:8px;margin-right:auto;min-width:0}
+.brand b{font-size:1.45rem;font-weight:800;color:var(--accent);letter-spacing:.01em}
+.brand span{font-size:.85rem;opacity:.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hbtn{white-space:nowrap;background:none;border:1px solid rgba(255,255,255,.4);color:var(--head-ink);border-radius:999px;padding:4px 12px;font-size:.88rem}
+.hbtn.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700}
+
+main{max-width:1100px;margin:0 auto;padding:16px}
+h2{font-size:1.2rem;margin:2px 0 12px}
+h3{font-size:1rem;margin:16px 0 8px}
+
+.btn{border:0;border-radius:12px;padding:11px 18px;font-weight:700;font-size:1rem;display:inline-flex;align-items:center;justify-content:center;gap:6px;text-decoration:none}
+.btn.main{background:var(--accent);color:var(--accent-ink)}
+.btn.main:disabled{opacity:.45;cursor:not-allowed}
+.btn.ghost{background:var(--chip);color:var(--ink);border:1px solid var(--line)}
+.btn.share{background:#1F8F4E;color:#fff}
+.btn.danger{background:none;color:var(--red);border:1.5px solid var(--red)}
+.btn.small{padding:7px 12px;font-size:.88rem;border-radius:10px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:16px}
+.form{display:grid;gap:12px;grid-template-columns:1fr 1fr}
+.form .full{grid-column:1/-1}
+@media (max-width:520px){.form{grid-template-columns:1fr}}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:.85rem;color:var(--muted)}
+label.f input,label.f select,label.f textarea{padding:10px 11px;border:1.5px solid var(--line);border-radius:10px;background:var(--field);color:var(--ink);font-size:1rem;width:100%}
+label.f input.bad{border-color:var(--red)}
+.err{color:var(--red);font-size:.82rem;min-height:0}
+.chk{display:flex;gap:10px;align-items:center;font-size:.95rem;color:var(--ink)}
+.chk input{width:20px;height:20px}
+.note{font-size:.85rem;color:var(--muted);margin:8px 2px}
+
+/* Billing */
+.bill-grid{display:grid;gap:20px}
+@media (min-width:880px){.bill-grid{grid-template-columns:1.2fr 1fr;align-items:start}.slip-wrap{position:sticky;top:76px}}
+.search{width:100%;padding:12px 14px;border:1.5px solid var(--line);border-radius:12px;background:var(--surface);font-size:1rem}
+.plist{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-top:10px}
+.pbtn{background:var(--surface);border:1.5px solid var(--line);border-radius:12px;padding:10px 12px;text-align:left;display:flex;flex-direction:column;gap:2px;min-height:78px}
+.pbtn:active{transform:scale(.97)}
+.pbtn .n{font-weight:600;line-height:1.25;word-break:break-word}
+.pbtn .p{font-weight:700}
+.tag{display:inline-block;font-size:.72rem;font-weight:700;padding:0 7px;border-radius:999px;background:#E6E8EE;color:#444;align-self:flex-start}
+.tag.r40{background:#F7DCD9;color:#8A1C14}.tag.r18{background:#E1E6F7;color:#26338A}.tag.r5{background:#DDEFE5;color:#21573C}.tag.r3,.tag.r025{background:#F6EBCB;color:#6B4D00}
+.emptybox{text-align:center;color:var(--muted);padding:24px 10px;background:var(--surface);border:1.5px dashed var(--line);border-radius:12px}
+
+.slip{position:relative;background:#fff;color:#1A1A1A;border-radius:6px 6px 0 0;padding:16px 14px 12px;box-shadow:0 8px 24px rgba(20,30,70,.14)}
+.slip::after{content:"";position:absolute;left:0;right:0;bottom:-9px;height:9px;background:linear-gradient(135deg,#fff 50%,transparent 50%) 0 0/14px 9px repeat-x,linear-gradient(225deg,#fff 50%,transparent 50%) 0 0/14px 9px repeat-x}
+.slip-head{text-align:center;border-bottom:1px dashed #999;padding-bottom:8px;margin-bottom:6px}
+.slip-head .shop{font-weight:800;font-size:1.05rem}
+.slip-head .meta{font-size:.8rem;color:#666}
+.slip .empty{color:#666;font-size:.9rem;text-align:center;padding:16px 6px}
+.line{display:grid;grid-template-columns:1fr auto;gap:2px 8px;padding:7px 0;border-bottom:1px dotted #ccc}
+.line .ln{font-weight:700;font-size:.95rem}
+.line .lr{font-size:.78rem;color:#666}
+.line .la{font-weight:700;text-align:right;align-self:center}
+.qty{display:flex;align-items:center;gap:4px;grid-column:1/-1}
+.qty button{width:34px;height:32px;border:1px solid #bbb;background:#f4f4f4;border-radius:7px;color:#222;font-weight:700}
+.qty input{width:70px;height:32px;text-align:center;border:1px solid #bbb;border-radius:7px;background:#fff;color:#111}
+.qty .del{margin-left:auto;border-color:transparent;background:none;color:#B3261E;width:auto;padding:0 6px;font-size:.85rem}
+.cust{margin:10px 0 4px}
+.cust summary{cursor:pointer;font-size:.92rem;font-weight:600;color:#26338A;padding:4px 0}
+.cust label{display:block;font-size:.78rem;color:#555;margin-top:6px}
+.cust input,.cust select{width:100%;padding:8px 9px;border:1px solid #bbb;border-radius:7px;background:#fff;color:#111;margin-top:2px}
+.cust input.bad{border-color:#B3261E}
+.sum{border-top:1px dashed #999;margin-top:10px;padding-top:8px;font-size:.88rem}
+.sum div{display:flex;justify-content:space-between;gap:8px}
+.sum .grand{font-size:1.25rem;font-weight:800;border-top:1px solid #222;margin-top:6px;padding-top:6px}
+.checkout{position:fixed;left:0;right:0;bottom:calc(60px + env(safe-area-inset-bottom,0px));z-index:8;background:var(--surface);border-top:1px solid var(--line);padding:10px 16px;display:flex;align-items:center;gap:12px;justify-content:space-between}
+.checkout .tot{font-size:1.4rem;font-weight:800;line-height:1.1}
+.checkout .cnt{font-size:.8rem;color:var(--muted)}
+
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:9;background:var(--head);display:grid;grid-template-columns:repeat(4,1fr);padding-bottom:env(safe-area-inset-bottom,0px)}
+nav.tabs button{background:none;border:0;color:var(--head-ink);opacity:.65;height:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font-size:.82rem}
+nav.tabs .ic{font-size:1.2rem;line-height:1}
+nav.tabs button[aria-current="page"]{opacity:1;color:var(--accent);font-weight:700}
+
+/* Items */
+.sugg{list-style:none;margin:6px 0 0;padding:0;border:1px solid var(--line);border-radius:10px;max-height:240px;overflow:auto;background:var(--field)}
+.sugg li button{width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);padding:8px 10px;display:flex;gap:8px;align-items:center}
+.sugg li:last-child button{border-bottom:0}
+.sugg .code{font-weight:700;min-width:44px}
+.sugg .d{flex:1;font-size:.9rem}
+.ilist{list-style:none;margin:0;padding:0}
+.ilist li{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:10px 2px;border-bottom:1px solid var(--line)}
+.ilist .m{font-size:.82rem;color:var(--muted)}
+.ilist .acts{display:flex;gap:6px;align-items:center;grid-row:1/3;grid-column:2}
+
+/* Sales */
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:var(--surface);margin-bottom:12px}
+.seg button{border:0;background:none;padding:6px 14px;font-size:.9rem}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg);font-weight:700}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px}
+.stat .v{font-size:1.2rem;font-weight:800;word-break:break-all}
+.stat .k{font-size:.8rem;color:var(--muted)}
+.blist{list-style:none;margin:0;padding:0}
+.blist button{width:100%;display:grid;grid-template-columns:1fr auto;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin-bottom:8px}
+.blist .bn{font-weight:700}
+.blist .bm{font-size:.82rem;color:var(--muted)}
+.blist .bt{font-weight:800;align-self:center;grid-row:1/3;grid-column:2}
+.blist .x .bn,.blist .x .bt{text-decoration:line-through;opacity:.6}
+
+/* Receipt (screen + print) */
+.modal{position:fixed;inset:0;z-index:20;background:rgba(10,14,35,.6);display:flex;align-items:flex-end;justify-content:center;padding:16px}
+@media (min-width:600px){.modal{align-items:center}}
+.sheet{width:100%;max-width:440px;max-height:calc(100% - 10px);overflow:auto;display:flex;flex-direction:column;gap:12px}
+.sheet .row{justify-content:center}
+.textlink{color:#fff;text-align:center;font-size:.9rem;text-decoration:underline;background:none;border:0}
+.receipt{background:#fff;color:#111;padding:14px;border-radius:4px;font-size:13px;line-height:1.35}
+.receipt .rc{text-align:center}
+.receipt .rb{font-weight:700}
+.receipt .big{font-size:17px;font-weight:800}
+.receipt .xl{font-size:17px;font-weight:800}
+.receipt .sm{font-size:11px;color:#444}
+.receipt .lr{display:flex;justify-content:space-between;gap:8px}
+.receipt .lr span:last-child{text-align:right}
+.receipt .hr{border-top:1px dashed #777;margin:6px 0}
+.receipt .cols{display:grid;gap:4px}
+.receipt .cols span{text-align:right}
+.receipt .cols span:first-child{text-align:left}
+.receipt .it{margin:3px 0}
+.receipt .stamp{text-align:center;color:#B3261E;font-weight:800;border:2px solid #B3261E;margin:4px auto;padding:2px 10px;display:table}
+
+.toast{position:fixed;left:50%;bottom:160px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:999px;z-index:40;font-weight:600;font-size:.9rem;max-width:90vw;text-align:center}
+
+/* Setup */
+.setup{position:fixed;inset:0;z-index:30;background:var(--bg);overflow:auto;padding:calc(env(safe-area-inset-top,0px) + 20px) 16px 40px}
+.setup .card{max-width:640px;margin:0 auto}
+.setup h1{max-width:640px;margin:0 auto 6px;font-size:1.6rem}
+.setup p.lead{max-width:640px;margin:0 auto 16px;color:var(--muted)}
+
+#printArea{display:none}
+@media print{
+  body{background:#fff;padding:0!important}
+  body::before,header,main,nav.tabs,.checkout,.modal,.toast,.setup{display:none!important}
+  #printArea{display:block}
+  #printArea .receipt{padding:0;border-radius:0}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+<style id="pageStyle">@page{size:80mm auto;margin:3mm}#printArea .receipt{width:74mm}</style>
+</head>
+<body class="billing">
+
+<header>
+  <div class="brand"><b>Hisab</b><span id="hdrShop"></span></div>
+  <button class="hbtn" id="licBadge" hidden></button>
+  <button class="hbtn" id="installBtn" hidden data-i18n="install"></button>
+  <button class="hbtn" id="langBtn" aria-label="Language"></button>
+</header>
+
+<main>
+  <!-- BILL -->
+  <section id="v-bill">
+    <div class="bill-grid">
+      <div>
+        <input id="q" class="search" type="search" autocomplete="off">
+        <div id="plist" class="plist"></div>
+      </div>
+      <div class="slip-wrap">
+        <div class="slip">
+          <div class="slip-head">
+            <div class="shop" id="slipShop"></div>
+            <div class="meta" id="slipMeta"></div>
+          </div>
+          <div id="cart"></div>
+          <details class="cust" id="custBox">
+            <summary data-i18n="customer"></summary>
+            <label><span data-i18n="custName"></span><input type="text" id="cName" maxlength="80"></label>
+            <label><span data-i18n="custPhone"></span><input type="tel" id="cPhone" inputmode="numeric" maxlength="10"></label>
+            <label><span data-i18n="custGstin"></span><input type="text" id="cGstin" maxlength="15" autocapitalize="characters"></label>
+            <div class="err" id="cGstinErr"></div>
+            <label><span data-i18n="custAddr"></span><input type="text" id="cAddr" maxlength="160"></label>
+            <label><span data-i18n="pos"></span><select id="cPos"></select></label>
+          </details>
+          <div id="sum" class="sum"></div>
+        </div>
+      </div>
+    </div>
+    <div class="checkout">
+      <div><div class="tot" id="coTotal">₹0</div><div class="cnt" id="coCount"></div></div>
+      <button class="btn main" id="makeBill" data-i18n="makeBill"></button>
+    </div>
+  </section>
+
+  <!-- ITEMS -->
+  <section id="v-items" hidden>
+    <div class="card">
+      <h2 id="iTitle"></h2>
+      <div class="form">
+        <label class="f full"><span data-i18n="itemName"></span><input id="iName" type="text" maxlength="80"></label>
+        <label class="f full"><span data-i18n="localName"></span><input id="iLocal" type="text" maxlength="80"></label>
+        <div class="full">
+          <label class="f"><span data-i18n="hsn"></span><input id="iHsn" type="text" inputmode="text" maxlength="8" autocomplete="off"></label>
+          <p class="note" data-i18n="hsnHint"></p>
+          <ul class="sugg" id="iSugg" hidden></ul>
+          <p class="note"><a href="https://services.gst.gov.in/services/searchhsnsac" target="_blank" rel="noopener" data-i18n="officialSearch"></a></p>
+        </div>
+        <label class="f"><span data-i18n="gstRate"></span><select id="iRate"></select></label>
+        <label class="f"><span data-i18n="price"></span><input id="iPrice" type="number" inputmode="decimal" min="0" step="0.01"></label>
+        <label class="f"><span data-i18n="unit"></span><select id="iUnit"></select></label>
+      </div>
+      <div class="err" id="iErr"></div>
+      <div class="row" style="margin-top:12px">
+        <button class="btn main" id="iSave" data-i18n="save"></button>
+        <button class="btn ghost" id="iCancel" data-i18n="cancel" hidden></button>
+      </div>
+      <p class="note" data-i18n="refNote"></p>
+    </div>
+    <div class="row" style="margin-bottom:10px">
+      <input id="iFilter" class="search" type="search" autocomplete="off" style="flex:1;min-width:180px">
+    </div>
+    <div class="row" style="margin-bottom:6px">
+      <button class="btn ghost small" id="iImport" data-i18n="importCsv"></button>
+      <button class="btn ghost small" id="iExport" data-i18n="exportCsv"></button>
+      <input type="file" id="iFile" accept=".csv,text/csv" hidden>
+    </div>
+    <p class="note" data-i18n="csvFormat"></p>
+    <ul class="ilist" id="iList"></ul>
+  </section>
+
+  <!-- SALES -->
+  <section id="v-sales" hidden>
+    <div class="seg" role="group">
+      <button data-range="today" data-i18n="today"></button>
+      <button data-range="month" data-i18n="month"></button>
+      <button data-range="all" data-i18n="all"></button>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="v" id="stSales">₹0</div><div class="k" data-i18n="salesTotal"></div></div>
+      <div class="stat"><div class="v" id="stGst">₹0</div><div class="k" data-i18n="gstCollected"></div></div>
+      <div class="stat"><div class="v" id="stCount">0</div><div class="k" data-i18n="billsCount"></div></div>
+    </div>
+    <div class="row" style="margin-bottom:12px">
+      <button class="btn ghost small" id="gstReport" data-i18n="gstReport"></button>
+    </div>
+    <ul class="blist" id="blist"></ul>
+  </section>
+
+  <!-- SETTINGS -->
+  <section id="v-settings" hidden>
+    <div class="card">
+      <h2 data-i18n="bizDetails"></h2>
+      <div id="bizForm"></div>
+    </div>
+    <div class="card">
+      <h2 data-i18n="licTitle"></h2>
+      <p id="sLicStatus" style="margin:0 0 12px;font-weight:600"></p>
+      <button class="btn ghost" id="sLicOpen" data-i18n="licManage"></button>
+    </div>
+    <div class="card">
+      <h2 data-i18n="billSettings"></h2>
+      <div class="form">
+        <label class="f"><span data-i18n="prefix"></span><input id="sPrefix" type="text" maxlength="8"></label>
+        <label class="f"><span data-i18n="paper"></span>
+          <select id="sPaper"><option value="58">58 mm</option><option value="80">80 mm</option><option value="A4">A4</option></select></label>
+        <label class="f"><span data-i18n="upi"></span><input id="sUpi" type="text" maxlength="60"></label>
+        <label class="f"><span data-i18n="language"></span>
+          <select id="sLang"><option value="en">English</option><option value="or">ଓଡ଼ିଆ</option></select></label>
+        <label class="f full"><span data-i18n="footer"></span><input id="sFooter" type="text" maxlength="120"></label>
+        <label class="chk full"><input type="checkbox" id="sIncl"><span data-i18n="inclusive"></span></label>
+      </div>
+      <div class="row" style="margin-top:12px"><button class="btn main" id="sSave2" data-i18n="save"></button></div>
+    </div>
+    <div class="card">
+      <h2 data-i18n="dataTitle"></h2>
+      <p class="note" data-i18n="dataNote"></p>
+      <div class="row">
+        <button class="btn ghost" id="backupBtn" data-i18n="backup"></button>
+        <button class="btn ghost" id="restoreBtn" data-i18n="restore"></button>
+        <input type="file" id="restoreFile" accept=".json,application/json" hidden>
+      </div>
+      <div class="row" style="margin-top:16px"><button class="btn danger" id="eraseBtn" data-i18n="erase"></button></div>
+    </div>
+    <p class="note" style="text-align:center">Hisab v1.1.0</p>
+  </section>
+</main>
+
+<nav class="tabs" aria-label="Sections">
+  <button data-tab="bill"><span class="ic">🧾</span><span data-i18n="tabBill"></span></button>
+  <button data-tab="items"><span class="ic">📦</span><span data-i18n="tabItems"></span></button>
+  <button data-tab="sales"><span class="ic">📊</span><span data-i18n="tabSales"></span></button>
+  <button data-tab="settings"><span class="ic">⚙️</span><span data-i18n="tabSettings"></span></button>
+</nav>
+
+<div class="modal" id="modal" hidden>
+  <div class="sheet">
+    <div class="receipt" id="receipt"></div>
+    <div class="row">
+      <button class="btn main" id="mPrint" data-i18n="print"></button>
+      <button class="btn share" id="mShare" data-i18n="share"></button>
+      <button class="btn ghost" id="mClose" data-i18n="close"></button>
+    </div>
+    <a class="textlink" id="mWaText" target="_blank" rel="noopener" data-i18n="sendText"></a>
+    <button class="textlink" id="mCancelBill" data-i18n="cancelBill"></button>
+  </div>
+</div>
+
+<div class="modal" id="licModal" hidden>
+  <div class="sheet">
+    <div class="card" style="margin:0">
+      <h2 data-i18n="licTitle"></h2>
+      <p id="licStatus" style="font-weight:600;margin:0 0 12px"></p>
+      <div class="f" style="display:flex;flex-direction:column;gap:4px;font-size:.85rem;color:var(--muted)"><span data-i18n="bizIdLabel"></span>
+        <div class="row"><code id="licBid" style="font-size:1.05rem;color:var(--ink);font-weight:700;word-break:break-all"></code>
+        <button class="btn ghost small" id="licCopy" data-i18n="copy"></button></div></div>
+      <p class="note" data-i18n="licNote"></p>
+      <label class="f"><span data-i18n="enterKey"></span><textarea id="licKey" rows="3" spellcheck="false" autocapitalize="off" autocomplete="off" style="font-family:ui-monospace,monospace;font-size:.85rem"></textarea></label>
+      <div class="err" id="licErr"></div>
+      <div class="row" style="margin-top:12px">
+        <button class="btn main" id="licActivate" data-i18n="activate"></button>
+        <button class="btn ghost" id="licClose" data-i18n="close"></button>
+      </div>
+      <p class="note" id="licContact"></p>
+    </div>
+  </div>
+</div>
+
+<div class="setup" id="setup" hidden>
+  <h1 data-i18n="setupTitle"></h1>
+  <p class="lead" data-i18n="setupIntro"></p>
+  <div class="card">
+    <div class="row" style="margin-bottom:12px">
+      <button class="hbtn" style="color:var(--ink);border-color:var(--line)" id="setupLang">ଓଡ଼ିଆ / English</button>
+    </div>
+    <div id="setupForm"></div>
+  </div>
+</div>
+
+<div id="printArea"></div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+"use strict";
+/* =========================================================
+   Hisab – offline GST billing (PWA). Version 1.1.0
+   ========================================================= */
+
+const STATES = [["01","Jammu & Kashmir"],["02","Himachal Pradesh"],["03","Punjab"],["04","Chandigarh"],["05","Uttarakhand"],["06","Haryana"],["07","Delhi"],["08","Rajasthan"],["09","Uttar Pradesh"],["10","Bihar"],["11","Sikkim"],["12","Arunachal Pradesh"],["13","Nagaland"],["14","Manipur"],["15","Mizoram"],["16","Tripura"],["17","Meghalaya"],["18","Assam"],["19","West Bengal"],["20","Jharkhand"],["21","Odisha"],["22","Chhattisgarh"],["23","Madhya Pradesh"],["24","Gujarat"],["26","Dadra & Nagar Haveli and Daman & Diu"],["27","Maharashtra"],["29","Karnataka"],["30","Goa"],["31","Lakshadweep"],["32","Kerala"],["33","Tamil Nadu"],["34","Puducherry"],["35","Andaman & Nicobar Islands"],["36","Telangana"],["37","Andhra Pradesh"],["38","Ladakh"],["97","Other Territory"]];
+const RATES = [0, 0.25, 3, 5, 18, 40];
+/* ===== EDIT HERE: your details shown to customers who need a license key ===== */
+const VENDOR = { name: "Hisab Billing", phone: "" };   // phone: 10-digit WhatsApp number, e.g. "9876543210"
+/* Public half of your signing key. Keys made with keygen.html are checked against it. */
+const LICENSE_PUBLIC_KEY = {kty:"EC", crv:"P-256", x:"NAe6ghgkK-M_J1GEvNM20VxdjvI_7R4mUg1x8bw-GP8", y:"yRYVd2Ygxq0wnBEZKJspk7Eo1nMArq__lXpIsJILuTE"};
+const TRIAL_DAYS = 30;
+const DAY_MS = 86400000;
+const UNITS = ["pcs","nos","kg","g","L","ml","m","box","pkt","dozen","set","pair","hr"];
+
+/* Suggested HSN/SAC and GST rates for common items, as per CBIC Notification
+   9/2025-Central Tax (Rate) w.e.f. 22-09-2025 and the 56th GST Council press release.
+   Rates depend on the exact product description: always confirm with a CA. */
+const HSN_REF = [
+  ["0401","Milk – fresh, pasteurised or UHT",0],
+  ["0406","Paneer / chena (pre-packaged & labelled)",0],
+  ["0406","Cheese",5],
+  ["0405","Butter, ghee",5],
+  ["0403","Curd, lassi, buttermilk (pre-packaged & labelled)",5],
+  ["0407","Eggs, fresh in shell",0],
+  ["0701","Potatoes, fresh",0],
+  ["0702","Tomatoes, fresh",0],
+  ["0703","Onions, fresh",0],
+  ["0803","Bananas, fresh",0],
+  ["0901","Coffee, roasted",5],
+  ["2101","Instant coffee, coffee extracts",5],
+  ["0902","Tea",5],
+  ["1006","Rice (pre-packaged & labelled)",5],
+  ["1101","Wheat flour / atta (pre-packaged & labelled)",5],
+  ["0713","Dal / pulses (pre-packaged & labelled)",5],
+  ["1701","Sugar",5],
+  ["1514","Mustard oil",5],
+  ["1507","Soyabean oil",5],
+  ["1512","Sunflower oil",5],
+  ["2501","Common salt",0],
+  ["1905","Bread (plain), roti, chapati, paratha",0],
+  ["1905","Biscuits, cakes, pastries, rusk",5],
+  ["2106","Namkeen, bhujia, mixture (packaged)",5],
+  ["1902","Pasta, instant noodles",5],
+  ["1904","Cornflakes, cereal flakes",5],
+  ["1806","Chocolates",5],
+  ["2103","Sauces, ketchup",5],
+  ["2007","Jam, fruit jelly",5],
+  ["2201","Drinking water / mineral water (no added sugar)",5],
+  ["2202","Aerated / carbonated drinks with added sugar",40],
+  ["2202","Caffeinated / energy drinks",40],
+  ["3305","Hair oil, shampoo",5],
+  ["3401","Toilet soap (bars)",5],
+  ["3306","Toothpaste, tooth powder",5],
+  ["9603","Toothbrush",5],
+  ["3307","Shaving cream / preparations",5],
+  ["3304","Talcum powder",5],
+  ["3307","Agarbatti",5],
+  ["3406","Candles",5],
+  ["3605","Matches",5],
+  ["3402","Detergent powder, washing preparations",18],
+  ["9619","Sanitary pads",0],
+  ["9619","Diapers",5],
+  ["9615","Combs",5],
+  ["3004","Medicines (most)",5],
+  ["3005","Bandages, gauze, dressings",5],
+  ["9025","Thermometer",5],
+  ["9004","Spectacles (corrective)",5],
+  ["4901","Printed books",0],
+  ["4820","Exercise books, notebooks",0],
+  ["9609","Pencils, crayons",0],
+  ["4016","Erasers",0],
+  ["7323","Steel kitchen utensils, tableware",5],
+  ["8712","Bicycles",5],
+  ["6109","Clothing – up to ₹2,500 per piece",5],
+  ["6109","Clothing – above ₹2,500 per piece",18],
+  ["6403","Footwear – up to ₹2,500 per pair",5],
+  ["6403","Footwear – above ₹2,500 per pair",18],
+  ["8517","Mobile phones",18],
+  ["8471","Laptops, computers",18],
+  ["8504","Mobile / laptop chargers",18],
+  ["8507","Rechargeable batteries",18],
+  ["8414","Fans",18],
+  ["8509","Mixer grinders",18],
+  ["8516","Electric irons, water heaters",18],
+  ["8418","Refrigerators",18],
+  ["8450","Washing machines",18],
+  ["8415","Air conditioners",18],
+  ["8528","Televisions",18],
+  ["8544","Electric wires & cables",18],
+  ["8536","Switches, sockets",18],
+  ["8481","Taps, valves",18],
+  ["3209","Paints",18],
+  ["2523","Cement",18],
+  ["9403","Furniture – wood / metal",18],
+  ["7113","Gold / silver jewellery",3],
+  ["9963","Restaurant service (not in hotels above ₹7,500/night)",5],
+  ["9997","Salon, barber, gym services",5],
+  ["9987","Repair services (phone, appliance)",18],
+  ["9983","Professional / IT services",18]
+];
+
+const T = {
+en:{appTag:"GST billing",install:"Install app",tabBill:"Bill",tabItems:"Items",tabSales:"Sales",tabSettings:"Settings",
+setupTitle:"Set up your business",setupIntro:"These details print on every bill. You can change them later in Settings.",startBilling:"Start billing",
+search:"Search items or HSN",noItemsYet:"No items yet. Add your items in the Items tab.",goItems:"Add items",noMatch:"No item matches this search.",
+cartEmpty:"No items in this bill yet. Tap an item to add it.",customer:"Customer details",custName:"Customer name",custPhone:"Mobile number",
+custGstin:"Customer GSTIN (business customers)",custAddr:"Customer address",pos:"Place of supply (state)",
+taxable:"Taxable value",total:"Total",roundOff:"Round off",makeBill:"Save bill",items:"items",
+print:"Print",share:"Share PDF",sendText:"Send as WhatsApp text",close:"Close",cancelBill:"Cancel this bill",
+cancelConfirm:"Cancel this bill? It stays in the list marked as cancelled and is left out of totals.",cancelled:"CANCELLED",
+thanks:"Thank you, visit again!",billNo:"Bill No",date:"Date",taxInvoice:"TAX INVOICE",billOfSupply:"BILL OF SUPPLY",cashMemo:"CASH MEMO",
+walkin:"Walk-in customer",gstSummary:"GST summary",inWords:"Amount in words",forBiz:"For",signatory:"Authorised signatory",
+qty:"Qty",rate:"Rate",amount:"Amount",item:"Item",
+addItem:"Add item",editItem:"Edit item",itemName:"Item name",localName:"Name in Odia (optional)",
+hsn:"HSN / SAC code",hsnHint:"Type an item name or HSN code below the name, and pick a suggestion to fill the HSN and GST rate.",
+officialSearch:"Search HSN on the official GST portal",price:"Price (₹)",unit:"Unit",gstRate:"GST rate",
+save:"Save",cancel:"Cancel",edit:"Edit",delete:"Delete",deleteItemConfirm:"Delete this item?",
+importCsv:"Import CSV",exportCsv:"Export CSV",csvFormat:"CSV columns: name, hsn, gst_rate, price, unit, name_odia",
+imported:"items imported",importNone:"No valid rows found in this file.",filterItems:"Search your items",
+refNote:"Suggested rates cover common items as per CBIC Notification 9/2025-CT(Rate), effective 22 Sept 2025. GST depends on the exact product, so confirm each rate with your CA or the GST portal.",
+today:"Today",month:"This month",all:"All",salesTotal:"Sales",gstCollected:"GST",billsCount:"Bills",noBills:"No bills in this period.",
+gstReport:"Download GST report (CSV)",bizDetails:"Business details",bizName:"Business name",address:"Address",state:"State",
+gstin:"GSTIN",phone:"Phone",email:"Email (optional)",regType:"GST registration",
+regRegular:"Regular (charges GST)",regComposition:"Composition scheme (no GST on bill)",regNone:"Not registered (no GST on bill)",
+billSettings:"Bill settings",prefix:"Bill number prefix",inclusive:"Item prices include GST (MRP pricing)",paper:"Bill size",
+footer:"Note at the bottom of the bill (optional)",upi:"UPI ID for payments (optional)",language:"Language",
+saved:"Saved",billSaved:"Bill saved",needBizName:"Enter the business name.",badGstin:"This GSTIN is not valid. Check each character.",
+needGstin:"Enter your GSTIN for a regular GST registration.",gstinState:"The first two digits of the GSTIN must match the state.",
+badCustGstin:"The customer GSTIN is not valid. Correct it or clear it.",needItem:"Enter an item name and a price of 0 or more.",
+badHsn:"HSN code must be 4, 6 or 8 digits.",dataTitle:"Your data",dataNote:"All data stays on this device only. Download a backup every week and keep it safe.",
+backup:"Download backup",restore:"Restore backup",restoreConfirm:"Replace all data on this device with this backup?",
+restored:"Backup restored",badBackup:"This file is not a Hisab backup.",erase:"Erase all data",
+eraseConfirm:"Erase all items, bills and settings on this device? This cannot be undone.",erased:"All data erased",
+pdfFail:"Could not create the PDF. Try again.",pdfSaved:"PDF downloaded. Attach it in WhatsApp from Downloads.",
+deleted:"Deleted",gstIncl:"GST included",upiPay:"Pay by UPI",billCancelled:"Bill cancelled",
+licTitle:"License",licManage:"Enter or view license key",trialBadge:"Trial: {n} days left",licBadge:"License: {n} days left",licBadgeOver:"License needed",
+licActive:"Licensed until {d}",trialActive:"Free trial: {n} days left",
+trialOver:"Your free trial has ended. Enter a license key to continue making bills. Old bills, reports and backup still work.",
+licOver:"Your license has ended. Enter a new license key to continue making bills. Old bills, reports and backup still work.",
+licMismatch:"The saved license key is for a different GSTIN or phone number.",
+bizIdLabel:"Your Business ID (send this when buying a key)",noBizId:"Add your GSTIN or 10-digit phone number in Business details first.",
+licNote:"The key is linked to your GSTIN, or to your phone number if you have no GSTIN. If you change it, you need a new key.",
+enterKey:"License key",activate:"Activate",activated:"License activated",
+badKey:"This license key is not valid. Copy the full key and try again.",keyOtherBiz:"This key is for Business ID {d}, not this business.",
+keyExpired:"This key has already expired.",needHttps:"Open the app from its https link to activate a key.",
+contactVendor:"To buy a license key, contact",copy:"Copy",copied:"Copied"},
+or:{appTag:"GST ବିଲିଂ",install:"ଆପ୍ ଇନଷ୍ଟଲ୍ କରନ୍ତୁ",tabBill:"ବିଲ୍",tabItems:"ଦ୍ରବ୍ୟ",tabSales:"ବିକ୍ରି",tabSettings:"ସେଟିଂସ୍",
+setupTitle:"ଆପଣଙ୍କ ବ୍ୟବସାୟ ବିବରଣୀ",setupIntro:"ଏହି ବିବରଣୀ ପ୍ରତ୍ୟେକ ବିଲ୍‌ରେ ଛପାଯିବ। ପରେ ସେଟିଂସ୍‌ରେ ବଦଳାଇ ପାରିବେ।",startBilling:"ବିଲିଂ ଆରମ୍ଭ କରନ୍ତୁ",
+search:"ଦ୍ରବ୍ୟ ବା HSN ଖୋଜନ୍ତୁ",noItemsYet:"ଏପର୍ଯ୍ୟନ୍ତ କୌଣସି ଦ୍ରବ୍ୟ ନାହିଁ। ଦ୍ରବ୍ୟ ଟ୍ୟାବ୍‌ରେ ଆପଣଙ୍କ ଦ୍ରବ୍ୟ ଯୋଡ଼ନ୍ତୁ।",goItems:"ଦ୍ରବ୍ୟ ଯୋଡ଼ନ୍ତୁ",noMatch:"ଏହି ନାମରେ କୌଣସି ଦ୍ରବ୍ୟ ମିଳିଲା ନାହିଁ।",
+cartEmpty:"ଏହି ବିଲ୍‌ରେ ଏପର୍ଯ୍ୟନ୍ତ କୌଣସି ଦ୍ରବ୍ୟ ନାହିଁ। ଯୋଡ଼ିବାକୁ ଦ୍ରବ୍ୟ ଉପରେ ଟ୍ୟାପ୍ କରନ୍ତୁ।",customer:"ଗ୍ରାହକଙ୍କ ବିବରଣୀ",custName:"ଗ୍ରାହକଙ୍କ ନାମ",custPhone:"ମୋବାଇଲ୍ ନମ୍ବର",
+custGstin:"ଗ୍ରାହକଙ୍କ GSTIN (ବ୍ୟବସାୟୀ ଗ୍ରାହକ)",custAddr:"ଗ୍ରାହକଙ୍କ ଠିକଣା",pos:"ଯୋଗାଣ ସ୍ଥାନ (ରାଜ୍ୟ)",
+taxable:"କରଯୋଗ୍ୟ ମୂଲ୍ୟ",total:"ମୋଟ",roundOff:"ରାଉଣ୍ଡ ଅଫ୍",makeBill:"ବିଲ୍ ସେଭ୍ କରନ୍ତୁ",items:"ଦ୍ରବ୍ୟ",
+print:"ପ୍ରିଣ୍ଟ",share:"PDF ପଠାନ୍ତୁ",sendText:"ହ୍ୱାଟସଆପ୍ ଟେକ୍ସଟ୍ ଭାବରେ ପଠାନ୍ତୁ",close:"ବନ୍ଦ କରନ୍ତୁ",cancelBill:"ଏହି ବିଲ୍ ବାତିଲ୍ କରନ୍ତୁ",
+cancelConfirm:"ଏହି ବିଲ୍ ବାତିଲ୍ କରିବେ କି? ଏହା ତାଲିକାରେ ବାତିଲ୍ ଭାବେ ରହିବ ଓ ମୋଟ ହିସାବରୁ ବାଦ୍ ପଡ଼ିବ।",cancelled:"ବାତିଲ୍",
+thanks:"ଧନ୍ୟବାଦ, ପୁଣି ଆସନ୍ତୁ!",billNo:"ବିଲ୍ ନଂ",date:"ତାରିଖ",taxInvoice:"TAX INVOICE",billOfSupply:"BILL OF SUPPLY",cashMemo:"CASH MEMO",
+walkin:"ସାଧାରଣ ଗ୍ରାହକ",gstSummary:"GST ସାରାଂଶ",inWords:"ଶବ୍ଦରେ ରାଶି",forBiz:"ପକ୍ଷରୁ",signatory:"ପ୍ରାଧିକୃତ ସ୍ୱାକ୍ଷରକାରୀ",
+qty:"ପରିମାଣ",rate:"ଦର",amount:"ରାଶି",item:"ଦ୍ରବ୍ୟ",
+addItem:"ଦ୍ରବ୍ୟ ଯୋଡ଼ନ୍ତୁ",editItem:"ଦ୍ରବ୍ୟ ବଦଳାନ୍ତୁ",itemName:"ଦ୍ରବ୍ୟର ନାମ (ଇଂରାଜୀ)",localName:"ଓଡ଼ିଆରେ ନାମ (ଇଚ୍ଛାଧୀନ)",
+hsn:"HSN / SAC କୋଡ୍",hsnHint:"ଦ୍ରବ୍ୟର ନାମ ବା HSN କୋଡ୍ ଲେଖନ୍ତୁ, ଏବଂ HSN ଓ GST ହାର ଭରିବାକୁ ଏକ ପରାମର୍ଶ ବାଛନ୍ତୁ।",
+officialSearch:"ସରକାରୀ GST ପୋର୍ଟାଲରେ HSN ଖୋଜନ୍ତୁ",price:"ଦର (₹)",unit:"ଏକକ",gstRate:"GST ହାର",
+save:"ସେଭ୍ କରନ୍ତୁ",cancel:"ବାତିଲ୍",edit:"ବଦଳାନ୍ତୁ",delete:"ହଟାନ୍ତୁ",deleteItemConfirm:"ଏହି ଦ୍ରବ୍ୟ ହଟାଇବେ କି?",
+importCsv:"CSV ଆଣନ୍ତୁ",exportCsv:"CSV ଡାଉନଲୋଡ୍",csvFormat:"CSV ସ୍ତମ୍ଭ: name, hsn, gst_rate, price, unit, name_odia",
+imported:"ଦ୍ରବ୍ୟ ଯୋଡ଼ାଗଲା",importNone:"ଏହି ଫାଇଲରେ କୌଣସି ଠିକ୍ ଧାଡ଼ି ମିଳିଲା ନାହିଁ।",filterItems:"ଆପଣଙ୍କ ଦ୍ରବ୍ୟ ଖୋଜନ୍ତୁ",
+refNote:"ପରାମର୍ଶିତ ହାର CBIC ବିଜ୍ଞପ୍ତି 9/2025-CT(Rate) (22 ସେପ୍ଟେମ୍ବର 2025ରୁ ଲାଗୁ) ଅନୁଯାୟୀ ସାଧାରଣ ଦ୍ରବ୍ୟ ପାଇଁ। GST ଠିକ୍ ଦ୍ରବ୍ୟ ଉପରେ ନିର୍ଭର କରେ, ତେଣୁ ପ୍ରତ୍ୟେକ ହାର ଆପଣଙ୍କ CA ବା GST ପୋର୍ଟାଲରେ ଯାଞ୍ଚ କରନ୍ତୁ।",
+today:"ଆଜି",month:"ଏହି ମାସ",all:"ସବୁ",salesTotal:"ବିକ୍ରି",gstCollected:"GST",billsCount:"ବିଲ୍",noBills:"ଏହି ସମୟରେ କୌଣସି ବିଲ୍ ନାହିଁ।",
+gstReport:"GST ରିପୋର୍ଟ ଡାଉନଲୋଡ୍ (CSV)",bizDetails:"ବ୍ୟବସାୟ ବିବରଣୀ",bizName:"ବ୍ୟବସାୟର ନାମ",address:"ଠିକଣା",state:"ରାଜ୍ୟ",
+gstin:"GSTIN",phone:"ଫୋନ୍",email:"ଇମେଲ୍ (ଇଚ୍ଛାଧୀନ)",regType:"GST ପଞ୍ଜୀକରଣ",
+regRegular:"ସାଧାରଣ (GST ନିଆଯାଏ)",regComposition:"କମ୍ପୋଜିସନ୍ ସ୍କିମ୍ (ବିଲ୍‌ରେ GST ନାହିଁ)",regNone:"ପଞ୍ଜୀକୃତ ନୁହେଁ (ବିଲ୍‌ରେ GST ନାହିଁ)",
+billSettings:"ବିଲ୍ ସେଟିଂସ୍",prefix:"ବିଲ୍ ନମ୍ବର ପ୍ରିଫିକ୍ସ",inclusive:"ଦ୍ରବ୍ୟ ଦରରେ GST ସାମିଲ (MRP ଦର)",paper:"ବିଲ୍ ଆକାର",
+footer:"ବିଲ୍ ତଳେ ଲେଖା (ଇଚ୍ଛାଧୀନ)",upi:"ପେମେଣ୍ଟ ପାଇଁ UPI ID (ଇଚ୍ଛାଧୀନ)",language:"ଭାଷା",
+saved:"ସେଭ୍ ହେଲା",billSaved:"ବିଲ୍ ସେଭ୍ ହେଲା",needBizName:"ବ୍ୟବସାୟର ନାମ ଲେଖନ୍ତୁ।",badGstin:"ଏହି GSTIN ଠିକ୍ ନୁହେଁ। ପ୍ରତ୍ୟେକ ଅକ୍ଷର ଯାଞ୍ଚ କରନ୍ତୁ।",
+needGstin:"ସାଧାରଣ GST ପଞ୍ଜୀକରଣ ପାଇଁ ଆପଣଙ୍କ GSTIN ଲେଖନ୍ତୁ।",gstinState:"GSTIN ର ପ୍ରଥମ ଦୁଇ ଅଙ୍କ ରାଜ୍ୟ ସହ ମେଳ ହେବା ଦରକାର।",
+badCustGstin:"ଗ୍ରାହକଙ୍କ GSTIN ଠିକ୍ ନୁହେଁ। ଠିକ୍ କରନ୍ତୁ ବା ହଟାନ୍ତୁ।",needItem:"ଦ୍ରବ୍ୟର ନାମ ଓ 0 ବା ଅଧିକ ଦର ଲେଖନ୍ତୁ।",
+badHsn:"HSN କୋଡ୍ 4, 6 ବା 8 ଅଙ୍କର ହେବା ଦରକାର।",dataTitle:"ଆପଣଙ୍କ ତଥ୍ୟ",dataNote:"ସମସ୍ତ ତଥ୍ୟ କେବଳ ଏହି ଡିଭାଇସ୍‌ରେ ରହେ। ପ୍ରତି ସପ୍ତାହ ବ୍ୟାକଅପ୍ ଡାଉନଲୋଡ୍ କରି ସୁରକ୍ଷିତ ରଖନ୍ତୁ।",
+backup:"ବ୍ୟାକଅପ୍ ଡାଉନଲୋଡ୍",restore:"ବ୍ୟାକଅପ୍ ଫେରାନ୍ତୁ",restoreConfirm:"ଏହି ଡିଭାଇସ୍‌ର ସମସ୍ତ ତଥ୍ୟ ଏହି ବ୍ୟାକଅପ୍ ସହ ବଦଳାଇବେ କି?",
+restored:"ବ୍ୟାକଅପ୍ ଫେରିଲା",badBackup:"ଏହା Hisab ବ୍ୟାକଅପ୍ ଫାଇଲ୍ ନୁହେଁ।",erase:"ସମସ୍ତ ତଥ୍ୟ ହଟାନ୍ତୁ",
+eraseConfirm:"ଏହି ଡିଭାଇସ୍‌ର ସମସ୍ତ ଦ୍ରବ୍ୟ, ବିଲ୍ ଓ ସେଟିଂସ୍ ହଟାଇବେ କି? ଏହା ଫେରାଇ ହେବ ନାହିଁ।",erased:"ସମସ୍ତ ତଥ୍ୟ ହଟାଗଲା",
+pdfFail:"PDF ତିଆରି ହୋଇପାରିଲା ନାହିଁ। ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ।",pdfSaved:"PDF ଡାଉନଲୋଡ୍ ହେଲା। ହ୍ୱାଟସଆପ୍‌ରେ Downloads ରୁ ଯୋଡ଼ନ୍ତୁ।",
+deleted:"ହଟାଗଲା",gstIncl:"GST ସାମିଲ",upiPay:"UPI ରେ ପେମେଣ୍ଟ",billCancelled:"ବିଲ୍ ବାତିଲ୍ ହେଲା",
+licTitle:"ଲାଇସେନ୍ସ",licManage:"ଲାଇସେନ୍ସ କି ଲେଖନ୍ତୁ ବା ଦେଖନ୍ତୁ",trialBadge:"ଟ୍ରାଏଲ୍: {n} ଦିନ ବାକି",licBadge:"ଲାଇସେନ୍ସ: {n} ଦିନ ବାକି",licBadgeOver:"ଲାଇସେନ୍ସ ଦରକାର",
+licActive:"{d} ପର୍ଯ୍ୟନ୍ତ ଲାଇସେନ୍ସ ଅଛି",trialActive:"ମାଗଣା ଟ୍ରାଏଲ୍: {n} ଦିନ ବାକି",
+trialOver:"ଆପଣଙ୍କ ମାଗଣା ଟ୍ରାଏଲ୍ ଶେଷ ହୋଇଛି। ବିଲ୍ ତିଆରି ଜାରି ରଖିବାକୁ ଲାଇସେନ୍ସ କି ଲେଖନ୍ତୁ। ପୁରୁଣା ବିଲ୍, ରିପୋର୍ଟ ଓ ବ୍ୟାକଅପ୍ ଚାଲୁ ରହିବ।",
+licOver:"ଆପଣଙ୍କ ଲାଇସେନ୍ସ ଶେଷ ହୋଇଛି। ବିଲ୍ ତିଆରି ଜାରି ରଖିବାକୁ ନୂଆ ଲାଇସେନ୍ସ କି ଲେଖନ୍ତୁ। ପୁରୁଣା ବିଲ୍, ରିପୋର୍ଟ ଓ ବ୍ୟାକଅପ୍ ଚାଲୁ ରହିବ।",
+licMismatch:"ସେଭ୍ ହୋଇଥିବା ଲାଇସେନ୍ସ କି ଅନ୍ୟ GSTIN ବା ଫୋନ୍ ନମ୍ବର ପାଇଁ।",
+bizIdLabel:"ଆପଣଙ୍କ ବ୍ୟବସାୟ ID (କି କିଣିବା ସମୟରେ ଏହା ପଠାନ୍ତୁ)",noBizId:"ପ୍ରଥମେ ବ୍ୟବସାୟ ବିବରଣୀରେ GSTIN ବା 10 ଅଙ୍କର ଫୋନ୍ ନମ୍ବର ଲେଖନ୍ତୁ।",
+licNote:"କି ଆପଣଙ୍କ GSTIN ସହ, କିମ୍ବା GSTIN ନ ଥିଲେ ଫୋନ୍ ନମ୍ବର ସହ ଯୋଡ଼ା। ଏହା ବଦଳାଇଲେ ନୂଆ କି ଦରକାର ହେବ।",
+enterKey:"ଲାଇସେନ୍ସ କି",activate:"ଚାଲୁ କରନ୍ତୁ",activated:"ଲାଇସେନ୍ସ ଚାଲୁ ହେଲା",
+badKey:"ଏହି ଲାଇସେନ୍ସ କି ଠିକ୍ ନୁହେଁ। ପୂରା କି କପି କରି ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ।",keyOtherBiz:"ଏହି କି ବ୍ୟବସାୟ ID {d} ପାଇଁ, ଏହି ବ୍ୟବସାୟ ପାଇଁ ନୁହେଁ।",
+keyExpired:"ଏହି କି ର ମିଆଦ ଶେଷ ହୋଇସାରିଛି।",needHttps:"କି ଚାଲୁ କରିବାକୁ ଆପ୍‌କୁ ଏହାର https ଲିଙ୍କରୁ ଖୋଲନ୍ତୁ।",
+contactVendor:"ଲାଇସେନ୍ସ କି କିଣିବାକୁ ଯୋଗାଯୋଗ କରନ୍ତୁ",copy:"କପି",copied:"କପି ହେଲା"}
+};
+
+/* ---------------- Storage (IndexedDB, falls back to localStorage) ---------------- */
+const Store = {
+  db: null,
+  open() {
+    return new Promise(res => {
+      try {
+        if (!("indexedDB" in window)) return res(null);
+        const r = indexedDB.open("hisab", 1);
+        r.onupgradeneeded = () => r.result.createObjectStore("kv");
+        r.onsuccess = () => { this.db = r.result; res(this.db); };
+        r.onerror = () => res(null);
+        r.onblocked = () => res(null);
+      } catch (e) { res(null); }
+    });
+  },
+  get(k) {
+    return new Promise(res => {
+      if (!this.db) { try { res(JSON.parse(localStorage.getItem("hisab:" + k))); } catch (e) { res(null); } return; }
+      try {
+        const q = this.db.transaction("kv").objectStore("kv").get(k);
+        q.onsuccess = () => res(q.result === undefined ? null : q.result);
+        q.onerror = () => res(null);
+      } catch (e) { res(null); }
+    });
+  },
+  set(k, v) {
+    return new Promise(res => {
+      const val = JSON.parse(JSON.stringify(v));
+      if (!this.db) { try { localStorage.setItem("hisab:" + k, JSON.stringify(val)); } catch (e) {} return res(); }
+      try {
+        const tx = this.db.transaction("kv", "readwrite");
+        tx.objectStore("kv").put(val, k);
+        tx.oncomplete = () => res(); tx.onerror = () => res(); tx.onabort = () => res();
+      } catch (e) { res(); }
+    });
+  }
+};
+
+const DEFAULT_SETTINGS = {name:"",address:"",state:"21",gstin:"",phone:"",email:"",regType:"regular",
+  prefix:"INV-",inclusive:true,paper:"80",lang:"en",footer:"",upi:"",licenseKey:""};
+let S = {settings:{...DEFAULT_SETTINGS}, products:[], bills:[], meta:{counter:0}};
+let tab = "bill", cart = [], editingId = null, salesRange = "today", current = null, deferredInstall = null;
+
+/* ---------------- Helpers ---------------- */
+const $ = id => document.getElementById(id);
+const t = k => (T[S.settings.lang] && T[S.settings.lang][k]) || T.en[k] || k;
+const tf = (k, o) => t(k).replace("{n}", o.n != null ? o.n : "").replace("{d}", o.d != null ? o.d : "");
+const r2 = n => Math.round((n + Number.EPSILON) * 100) / 100;
+const fmt2 = n => Number(n).toLocaleString("en-IN", {minimumFractionDigits:2, maximumFractionDigits:2});
+const money = n => "₹" + fmt2(n);
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const pname = p => (S.settings.lang === "or" && p.local) ? p.local : (p.name || p.local || "");
+const rateLabel = r => (r === 0.25 ? "0.25" : String(r)) + "%";
+const stateName = c => { const s = STATES.find(x => x[0] === c); return s ? s[1] : c; };
+const pad2 = n => String(n).padStart(2, "0");
+const fmtDate = iso => { const d = new Date(iso); return `${pad2(d.getDate())}/${pad2(d.getMonth()+1)}/${d.getFullYear()} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`; };
+const save = k => Store.set(k, S[k]);
+function toast(msg) { const el = $("toast"); el.textContent = msg; el.hidden = false; clearTimeout(toast._t); toast._t = setTimeout(() => el.hidden = true, 2600); }
+
+function validGSTIN(g) {
+  g = (g || "").toUpperCase().trim();
+  if (!/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(g)) return false;
+  const cs = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  let sum = 0;
+  for (let i = 0; i < 14; i++) {
+    const p = cs.indexOf(g[i]) * (i % 2 === 0 ? 1 : 2);
+    sum += Math.floor(p / 36) + (p % 36);
+  }
+  return cs[(36 - (sum % 36)) % 36] === g[14];
+}
+
+function inWords(num) {
+  num = Math.round(Math.abs(num));
+  if (num === 0) return "Zero";
+  const a = ["","One","Two","Three","Four","Five","Six","Seven","Eight","Nine","Ten","Eleven","Twelve","Thirteen","Fourteen","Fifteen","Sixteen","Seventeen","Eighteen","Nineteen"];
+  const b = ["","","Twenty","Thirty","Forty","Fifty","Sixty","Seventy","Eighty","Ninety"];
+  const two = x => x < 20 ? a[x] : b[Math.floor(x / 10)] + (x % 10 ? " " + a[x % 10] : "");
+  const three = x => { const h = Math.floor(x / 100), r = x % 100; return (h ? a[h] + " Hundred" + (r ? " " : "") : "") + (r ? two(r) : ""); };
+  const out = [];
+  const cr = Math.floor(num / 1e7); num %= 1e7;
+  const lk = Math.floor(num / 1e5); num %= 1e5;
+  const th = Math.floor(num / 1000); num %= 1000;
+  if (cr) out.push(inWords(cr) + " Crore");
+  if (lk) out.push(two(lk) + " Lakh");
+  if (th) out.push(two(th) + " Thousand");
+  if (num) out.push(three(num));
+  return out.join(" ");
+}
+
+/* GST maths. Each line is rounded to paise, then totals are summed. */
+function calc(lines, inclusive, regType) {
+  const groups = {}; let taxable = 0, tax = 0;
+  const charges = regType === "regular";
+  lines.forEach(l => {
+    const amt = r2(l.price * l.qty);
+    const rate = charges ? l.rate : 0;
+    let tv, tx;
+    if (inclusive) { tv = r2(amt / (1 + rate / 100)); tx = r2(amt - tv); }
+    else { tv = amt; tx = r2(amt * rate / 100); }
+    taxable += tv; tax += tx;
+    const g = groups[rate] || (groups[rate] = {rate, taxable:0, tax:0});
+    g.taxable = r2(g.taxable + tv); g.tax = r2(g.tax + tx);
+  });
+  taxable = r2(taxable); tax = r2(tax);
+  const gross = r2(taxable + tax), grand = Math.round(gross);
+  return {groups: Object.values(groups).sort((x, y) => x.rate - y.rate), taxable, tax, gross, grand, roundOff: r2(grand - gross)};
+}
+function splitTax(tax) { const c = r2(tax / 2); return [c, r2(tax - c)]; }
+
+/* ---------------- License (30-day trial + signed keys) ---------------- */
+let LIC = {state:"trial", canBill:true, daysLeft:TRIAL_DAYS}, _pubKey = null;
+function b64uToBytes(str) {
+  str = str.replace(/-/g, "+").replace(/_/g, "/"); while (str.length % 4) str += "=";
+  const bin = atob(str); const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+function businessId() {
+  const s = S.settings;
+  if (s.gstin) return s.gstin.toUpperCase().trim();
+  const ph = (s.phone || "").replace(/\D/g, "").slice(-10);
+  return ph.length === 10 ? ph : "";
+}
+const isoToDmy = iso => iso.split("-").reverse().join("/");
+const nowTrusted = () => Math.max(Date.now(), Number(S.meta.maxSeen) || 0);
+async function verifyKey(key) {
+  key = String(key || "").replace(/\s+/g, "");
+  const m = /^HISAB-([A-Za-z0-9_-]+)\.([A-Za-z0-9_-]+)$/.exec(key);
+  if (!m) return null;
+  if (!(window.crypto && crypto.subtle)) return {err: "https"};
+  try {
+    if (!_pubKey) _pubKey = await crypto.subtle.importKey("jwk", LICENSE_PUBLIC_KEY, {name: "ECDSA", namedCurve: "P-256"}, false, ["verify"]);
+    const payload = b64uToBytes(m[1]), sig = b64uToBytes(m[2]);
+    if (!(await crypto.subtle.verify({name: "ECDSA", hash: "SHA-256"}, _pubKey, sig, payload))) return null;
+    const d = JSON.parse(new TextDecoder().decode(payload));
+    if (!d || typeof d.i !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(d.e)) return null;
+    return d;
+  } catch (e) { return null; }
+}
+const keyEnd = d => new Date(d.e + "T23:59:59").getTime();
+async function refreshLicense() {
+  const now = nowTrusted();
+  const trialEnd = new Date(S.meta.trialStart).getTime() + TRIAL_DAYS * DAY_MS;
+  let st = now <= trialEnd ? {state:"trial", canBill:true, daysLeft:Math.max(1, Math.ceil((trialEnd - now) / DAY_MS))} : {state:"expired", canBill:false, daysLeft:0};
+  if (S.settings.licenseKey) {
+    const d = await verifyKey(S.settings.licenseKey);
+    if (d && !d.err) {
+      if (d.i !== businessId()) st.mismatch = true;
+      else if (now <= keyEnd(d)) st = {state:"licensed", canBill:true, daysLeft:Math.max(1, Math.ceil((keyEnd(d) - now) / DAY_MS)), until:d.e};
+      else if (st.state === "expired") st.state = "licExpired";
+    }
+  }
+  LIC = st; renderLicense();
+}
+function licStatusText() {
+  let msg = LIC.state === "licensed" ? tf("licActive", {d: isoToDmy(LIC.until)})
+    : LIC.state === "trial" ? tf("trialActive", {n: LIC.daysLeft})
+    : LIC.state === "licExpired" ? t("licOver") : t("trialOver");
+  if (LIC.mismatch) msg += " " + t("licMismatch");
+  return msg;
+}
+function renderLicense() {
+  const b = $("licBadge");
+  if (LIC.state === "licensed") { b.hidden = LIC.daysLeft > 15; b.textContent = tf("licBadge", {n: LIC.daysLeft}); }
+  else if (LIC.state === "trial") { b.hidden = false; b.textContent = tf("trialBadge", {n: LIC.daysLeft}); }
+  else { b.hidden = false; b.textContent = t("licBadgeOver"); }
+  b.classList.toggle("on", !LIC.canBill || LIC.daysLeft <= 7);
+  $("sLicStatus").textContent = licStatusText();
+  $("sLicStatus").style.color = LIC.canBill ? "var(--green)" : "var(--red)";
+  $("licStatus").textContent = licStatusText();
+  $("licStatus").style.color = LIC.canBill ? "var(--green)" : "var(--red)";
+  const bid = businessId();
+  $("licBid").textContent = bid || t("noBizId");
+  $("licCopy").hidden = !bid;
+  const ph = (VENDOR.phone || "").replace(/\D/g, "").slice(-10);
+  $("licContact").innerHTML = ph.length === 10
+    ? `${esc(t("contactVendor"))} ${esc(VENDOR.name)}: <a href="https://wa.me/91${ph}?text=${encodeURIComponent("Hisab license key. Business ID: " + bid + " – " + S.settings.name)}" target="_blank" rel="noopener">+91 ${ph}</a>`
+    : `${esc(t("contactVendor"))} ${esc(VENDOR.name)}.`;
+}
+function openLicense() { $("licErr").textContent = ""; $("licKey").value = ""; renderLicense(); $("licModal").hidden = false; }
+async function activateKey() {
+  const key = $("licKey").value.replace(/\s+/g, "");
+  const d = await verifyKey(key);
+  let err = "";
+  if (d && d.err === "https") err = t("needHttps");
+  else if (!d) err = t("badKey");
+  else if (d.i !== businessId()) err = tf("keyOtherBiz", {d: d.i});
+  else if (keyEnd(d) < nowTrusted()) err = t("keyExpired");
+  $("licErr").textContent = err;
+  if (err) return;
+  S.settings.licenseKey = key; await save("settings");
+  await refreshLicense(); $("licModal").hidden = true; toast(t("activated"));
+}
+
+/* ---------------- Business form (used in setup and settings) ---------------- */
+function bizFormHTML(prefix) {
+  const st = STATES.map(s => `<option value="${s[0]}">${s[0]} – ${esc(s[1])}</option>`).join("");
+  return `<div class="form">
+    <label class="f full"><span>${esc(t("bizName"))} *</span><input id="${prefix}Name" type="text" maxlength="80"></label>
+    <label class="f full"><span>${esc(t("address"))}</span><input id="${prefix}Addr" type="text" maxlength="160"></label>
+    <label class="f"><span>${esc(t("state"))}</span><select id="${prefix}State">${st}</select></label>
+    <label class="f"><span>${esc(t("phone"))}</span><input id="${prefix}Phone" type="tel" inputmode="numeric" maxlength="15"></label>
+    <label class="f full"><span>${esc(t("regType"))}</span><select id="${prefix}Reg">
+      <option value="regular">${esc(t("regRegular"))}</option>
+      <option value="composition">${esc(t("regComposition"))}</option>
+      <option value="none">${esc(t("regNone"))}</option></select></label>
+    <label class="f full" id="${prefix}GstinWrap"><span>${esc(t("gstin"))}</span><input id="${prefix}Gstin" type="text" maxlength="15" autocapitalize="characters"></label>
+    <label class="f full"><span>${esc(t("email"))}</span><input id="${prefix}Email" type="email" maxlength="80"></label>
+  </div>
+  <div class="err" id="${prefix}Err"></div>
+  <div class="row" style="margin-top:12px"><button class="btn main" id="${prefix}Save">${esc(prefix === "su" ? t("startBilling") : t("save"))}</button></div>`;
+}
+function fillBizForm(p) {
+  const s = S.settings;
+  $(p+"Name").value = s.name; $(p+"Addr").value = s.address; $(p+"State").value = s.state;
+  $(p+"Phone").value = s.phone; $(p+"Reg").value = s.regType; $(p+"Gstin").value = s.gstin; $(p+"Email").value = s.email;
+  $(p+"Err").textContent = "";
+}
+function readBizForm(p) {
+  const v = {
+    name: $(p+"Name").value.trim(), address: $(p+"Addr").value.trim(), state: $(p+"State").value,
+    phone: $(p+"Phone").value.trim(), regType: $(p+"Reg").value, gstin: $(p+"Gstin").value.trim().toUpperCase(), email: $(p+"Email").value.trim()
+  };
+  let err = "";
+  if (!v.name) err = t("needBizName");
+  else if (v.regType !== "none" && !v.gstin) err = t("needGstin");
+  else if (v.gstin && !validGSTIN(v.gstin)) err = t("badGstin");
+  else if (v.gstin && v.gstin.slice(0, 2) !== v.state) err = t("gstinState");
+  $(p+"Err").textContent = err;
+  return err ? null : v;
+}
+function bindBizForm(p, after) {
+  $(p+"Save").addEventListener("click", async () => {
+    const v = readBizForm(p); if (!v) return;
+    Object.assign(S.settings, v); await save("settings");
+    toast(t("saved")); after && after(); refreshLicense();
+  });
+  $(p+"Gstin").addEventListener("input", e => {
+    const g = e.target.value.toUpperCase();
+    if (/^[0-9]{2}/.test(g) && STATES.some(s => s[0] === g.slice(0, 2))) $(p+"State").value = g.slice(0, 2);
+  });
+}
+
+/* ---------------- Language / layout ---------------- */
+function applyLang() {
+  document.documentElement.lang = S.settings.lang === "or" ? "or" : "en";
+  document.querySelectorAll("[data-i18n]").forEach(el => el.textContent = t(el.dataset.i18n));
+  $("langBtn").textContent = S.settings.lang === "or" ? "English" : "ଓଡ଼ିଆ";
+  $("q").placeholder = t("search");
+  $("iFilter").placeholder = t("filterItems");
+  $("iTitle").textContent = editingId ? t("editItem") : t("addItem");
+  const keep = {};
+  ["Name","Addr","State","Phone","Reg","Gstin","Email"].forEach(k => ["st","su"].forEach(p => { const el = $(p + k); if (el) keep[p + k] = el.value; }));
+  $("bizForm").innerHTML = bizFormHTML("st"); bindBizForm("st", renderAll); fillBizForm("st");
+  $("setupForm").innerHTML = bizFormHTML("su"); bindBizForm("su", () => { $("setup").hidden = true; renderAll(); }); fillBizForm("su");
+  Object.keys(keep).forEach(id => { if ($(id)) $(id).value = keep[id]; });
+  const curRate = $("iRate").value;
+  $("iRate").innerHTML = RATES.map(r => `<option value="${r}">${rateLabel(r)}</option>`).join("");
+  $("iRate").value = curRate || "5";
+  if (S.meta.trialStart) renderLicense();
+  renderAll();
+}
+function setTab(name) {
+  tab = name;
+  ["bill","items","sales","settings"].forEach(v => $("v-" + v).hidden = v !== name);
+  document.querySelectorAll("nav.tabs button").forEach(b => b.dataset.tab === name ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current"));
+  document.body.classList.toggle("billing", name === "bill");
+  renderAll(); window.scrollTo(0, 0);
+}
+function applyPaper() {
+  const p = S.settings.paper;
+  const css = p === "A4" ? "@page{size:A4;margin:12mm}#printArea .receipt{width:100%;font-size:14px}"
+    : p === "58" ? "@page{size:58mm auto;margin:2mm}#printArea .receipt{width:54mm;font-size:10px}"
+    : "@page{size:80mm auto;margin:3mm}#printArea .receipt{width:74mm;font-size:12px}";
+  $("pageStyle").textContent = css;
+}
+
+/* ---------------- Billing ---------------- */
+function renderPicker() {
+  const q = $("q").value.trim().toLowerCase();
+  if (!S.products.length) {
+    $("plist").innerHTML = `<div class="emptybox" style="grid-column:1/-1">${esc(t("noItemsYet"))}<br><br><button class="btn main small" data-tab="items">${esc(t("goItems"))}</button></div>`;
+    return;
+  }
+  const list = S.products.filter(p => !q || (p.name + " " + (p.local || "") + " " + (p.hsn || "")).toLowerCase().includes(q));
+  $("plist").innerHTML = list.length ? list.map(p => `
+    <button class="pbtn" data-add="${p.id}">
+      <span class="n">${esc(pname(p))}</span>
+      <span class="p">${money(p.price)}<small style="font-weight:400"> /${esc(p.unit)}</small></span>
+      ${S.settings.regType === "regular" ? `<span class="tag r${String(p.rate).replace(".","")}">GST ${rateLabel(p.rate)}</span>` : ""}
+    </button>`).join("") : `<p class="note" style="grid-column:1/-1">${esc(t("noMatch"))}</p>`;
+}
+function renderCart() {
+  const s = S.settings;
+  $("hdrShop").textContent = s.name;
+  $("slipShop").textContent = s.name || "—";
+  $("slipMeta").textContent = `${t("billNo")}: ${s.prefix}${String(S.meta.counter + 1).padStart(4, "0")}`;
+  $("cart").innerHTML = !cart.length ? `<div class="empty">${esc(t("cartEmpty"))}</div>` : cart.map((l, i) => `
+    <div class="line">
+      <div><div class="ln">${esc(pname(l))}</div><div class="lr">${money(l.price)} × ${l.qty} ${esc(l.unit)}${s.regType === "regular" ? " · GST " + rateLabel(l.rate) : ""}</div></div>
+      <div class="la">${money(r2(l.price * l.qty))}</div>
+      <div class="qty">
+        <button data-dec="${i}" aria-label="Decrease">−</button>
+        <input data-qty="${i}" type="number" inputmode="decimal" min="0" step="any" value="${l.qty}" aria-label="${esc(t("qty"))}">
+        <button data-inc="${i}" aria-label="Increase">+</button>
+        <button class="del" data-rm="${i}">${esc(t("delete"))}</button>
+      </div>
+    </div>`).join("");
+  $("cPos").parentElement.hidden = s.regType !== "regular";
+  renderSum();
+}
+function custState() { return S.settings.regType === "regular" ? ($("cPos").value || S.settings.state) : S.settings.state; }
+function renderSum() {
+  const s = S.settings, c = calc(cart, s.inclusive, s.regType), inter = custState() !== s.state;
+  let rows = "";
+  if (s.regType === "regular") {
+    rows += `<div><span>${esc(t("taxable"))}</span><span>${money(c.taxable)}</span></div>`;
+    c.groups.filter(g => g.rate > 0).forEach(g => {
+      if (inter) rows += `<div><span>IGST ${rateLabel(g.rate)}</span><span>${money(g.tax)}</span></div>`;
+      else { const [cg, sg] = splitTax(g.tax); rows += `<div><span>CGST ${rateLabel(g.rate/2)}</span><span>${money(cg)}</span></div><div><span>SGST ${rateLabel(g.rate/2)}</span><span>${money(sg)}</span></div>`; }
+    });
+  }
+  if (c.roundOff) rows += `<div><span>${esc(t("roundOff"))}</span><span>${c.roundOff > 0 ? "+" : ""}${c.roundOff.toFixed(2)}</span></div>`;
+  rows += `<div class="grand"><span>${esc(t("total"))}</span><span>₹${c.grand.toLocaleString("en-IN")}</span></div>`;
+  $("sum").innerHTML = cart.length ? rows : "";
+  $("coTotal").textContent = "₹" + c.grand.toLocaleString("en-IN");
+  $("coCount").textContent = `${cart.length} ${t("items")}`;
+  $("makeBill").disabled = !cart.length;
+}
+function addToCart(id) {
+  const p = S.products.find(x => x.id === id); if (!p) return;
+  const ex = cart.find(l => l.pid === id);
+  if (ex) ex.qty = r2(ex.qty + 1);
+  else cart.push({pid:p.id, name:p.name, local:p.local || "", hsn:p.hsn || "", unit:p.unit || "pcs", price:p.price, rate:p.rate, qty:1});
+  renderCart();
+}
+function checkCustGstin() {
+  const g = $("cGstin").value.trim().toUpperCase();
+  const bad = g && !validGSTIN(g);
+  $("cGstin").classList.toggle("bad", !!bad);
+  $("cGstinErr").textContent = bad ? t("badCustGstin") : "";
+  if (g && !bad) $("cPos").value = g.slice(0, 2);
+  return !bad;
+}
+async function makeBill() {
+  if (!cart.length) return;
+  if (!LIC.canBill) { openLicense(); return; }
+  if (!checkCustGstin()) { $("custBox").open = true; $("cGstin").focus(); return; }
+  const s = S.settings;
+  S.meta.counter++;
+  S.meta.maxSeen = nowTrusted();
+  const pos = custState();
+  const bill = {
+    id: uid(), no: s.prefix + String(S.meta.counter).padStart(4, "0"), date: new Date().toISOString(), status: "ok",
+    shop: {name:s.name, address:s.address, state:s.state, gstin:s.gstin, phone:s.phone, email:s.email, regType:s.regType, footer:s.footer, upi:s.upi},
+    customer: {name:$("cName").value.trim(), phone:$("cPhone").value.trim(), gstin:$("cGstin").value.trim().toUpperCase(), address:$("cAddr").value.trim()},
+    pos, inter: s.regType === "regular" && pos !== s.state, inclusive: s.inclusive,
+    lines: cart.map(l => ({...l}))
+  };
+  bill.totals = calc(bill.lines, bill.inclusive, bill.shop.regType);
+  S.bills.unshift(bill);
+  await Promise.all([save("bills"), save("meta")]);
+  cart = []; ["cName","cPhone","cGstin","cAddr"].forEach(id => $(id).value = ""); $("cPos").value = s.state; delete $("cPos").dataset.touched; $("custBox").open = false;
+  renderCart(); openReceipt(bill); toast(t("billSaved"));
+}
+
+/* ---------------- Receipt model → HTML, canvas, PDF ---------------- */
+function receiptModel(b) {
+  const sh = b.shop, c = b.totals, R = [], reg = sh.regType === "regular";
+  const nm = l => (S.settings.lang === "or" && l.local) ? l.local : l.name;
+  R.push({k:"c", s:sh.name, cls:"big"});
+  if (sh.address) R.push({k:"c", s:sh.address});
+  if (sh.phone) R.push({k:"c", s:t("phone") + ": " + sh.phone});
+  if (sh.gstin) R.push({k:"c", s:"GSTIN: " + sh.gstin});
+  R.push({k:"hr"});
+  R.push({k:"c", s: reg ? t("taxInvoice") : (sh.regType === "composition" ? t("billOfSupply") : t("cashMemo")), cls:"rb"});
+  if (sh.regType === "composition") R.push({k:"c", s:"Composition taxable person, not eligible to collect tax on supplies", cls:"sm"});
+  if (b.status === "cancelled") R.push({k:"stamp", s:t("cancelled")});
+  R.push({k:"lr", l:t("billNo") + ": " + b.no, r:fmtDate(b.date)});
+  if (reg) R.push({k:"lr", l:t("pos") + ":", r:stateName(b.pos) + " (" + b.pos + ")"});
+  R.push({k:"lr", l:t("customer").replace(/ details| ବିବରଣୀ/,"") + ":", r:b.customer.name || t("walkin")});
+  if (b.customer.phone) R.push({k:"lr", l:t("phone") + ":", r:b.customer.phone});
+  if (b.customer.gstin) R.push({k:"lr", l:"GSTIN:", r:b.customer.gstin});
+  if (b.customer.address) R.push({k:"l", s:b.customer.address, cls:"sm"});
+  R.push({k:"hr"});
+  R.push({k:"lr", l:t("item"), r:t("amount"), cls:"rb"});
+  b.lines.forEach(l => {
+    R.push({k:"l", s:nm(l), cls:"rb"});
+    R.push({k:"lr", l:`${l.qty} ${l.unit} × ${fmt2(l.price)}`, r:fmt2(r2(l.price * l.qty))});
+    const meta = [l.hsn ? "HSN " + l.hsn : "", reg ? "GST " + rateLabel(l.rate) : ""].filter(Boolean).join(" · ");
+    if (meta) R.push({k:"l", s:meta, cls:"sm"});
+  });
+  R.push({k:"hr"});
+  if (reg) {
+    R.push({k:"l", s:t("gstSummary"), cls:"rb"});
+    if (b.inter) {
+      R.push({k:"cols", w:[1,1.4,1.2], c:["GST", t("taxable"), "IGST"], cls:"sm"});
+      c.groups.forEach(g => R.push({k:"cols", w:[1,1.4,1.2], c:[rateLabel(g.rate), fmt2(g.taxable), fmt2(g.tax)]}));
+    } else {
+      R.push({k:"cols", w:[0.8,1.3,1,1], c:["GST", t("taxable"), "CGST", "SGST"], cls:"sm"});
+      c.groups.forEach(g => { const [cg, sg] = splitTax(g.tax); R.push({k:"cols", w:[0.8,1.3,1,1], c:[rateLabel(g.rate), fmt2(g.taxable), fmt2(cg), fmt2(sg)]}); });
+    }
+    R.push({k:"hr"});
+    R.push({k:"lr", l:t("taxable"), r:fmt2(c.taxable)});
+    if (b.inter) R.push({k:"lr", l:"IGST", r:fmt2(c.tax)});
+    else { let cg = 0, sg = 0; c.groups.forEach(g => { const x = splitTax(g.tax); cg += x[0]; sg += x[1]; }); R.push({k:"lr", l:"CGST", r:fmt2(r2(cg))}); R.push({k:"lr", l:"SGST", r:fmt2(r2(sg))}); }
+  }
+  if (c.roundOff) R.push({k:"lr", l:t("roundOff"), r:(c.roundOff > 0 ? "+" : "") + c.roundOff.toFixed(2)});
+  R.push({k:"lr", l:t("total"), r:"₹" + c.grand.toLocaleString("en-IN") + ".00", cls:"xl"});
+  R.push({k:"l", s:"Rupees " + inWords(c.grand) + " Only", cls:"sm"});
+  R.push({k:"hr"});
+  if (sh.upi) R.push({k:"c", s:t("upiPay") + ": " + sh.upi});
+  if (sh.footer) R.push({k:"c", s:sh.footer, cls:"sm"});
+  R.push({k:"c", s:t("thanks")});
+  if (reg) { R.push({k:"gap"}); R.push({k:"r", s:t("forBiz") + " " + sh.name, cls:"sm"}); R.push({k:"gap"}); R.push({k:"r", s:t("signatory"), cls:"sm"}); }
+  return R;
+}
+function receiptHTML(b) {
+  return receiptModel(b).map(x => {
+    const cl = x.cls || "";
+    switch (x.k) {
+      case "c": return `<div class="rc ${cl}">${esc(x.s)}</div>`;
+      case "l": return `<div class="it ${cl}">${esc(x.s)}</div>`;
+      case "r": return `<div class="${cl}" style="text-align:right">${esc(x.s)}</div>`;
+      case "lr": return `<div class="lr ${cl}"><span>${esc(x.l)}</span><span>${esc(x.r)}</span></div>`;
+      case "hr": return `<div class="hr"></div>`;
+      case "gap": return `<div style="height:10px"></div>`;
+      case "stamp": return `<div class="stamp">${esc(x.s)}</div>`;
+      case "cols": return `<div class="cols ${cl}" style="grid-template-columns:${x.w.map(w => w + "fr").join(" ")}">${x.c.map(v => `<span>${esc(v)}</span>`).join("")}</div>`;
+    }
+    return "";
+  }).join("");
+}
+
+const CANVAS_FONT = 'system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans","Noto Sans Oriya","Kalinga","Nirmala UI",sans-serif';
+function drawReceipt(b, paper) {
+  const W = paper === "A4" ? 1240 : paper === "58" ? 384 : 576;
+  const base = paper === "A4" ? 26 : paper === "58" ? 17 : 21;
+  const P = paper === "A4" ? 70 : 16, inner = W - 2 * P;
+  const fontFor = cls => {
+    const sz = cls === "big" || cls === "xl" ? Math.round(base * 1.3) : cls === "sm" ? Math.round(base * 0.82) : base;
+    const wt = cls === "big" || cls === "xl" || cls === "rb" ? "700" : "400";
+    return {f: `${wt} ${sz}px ${CANVAS_FONT}`, lh: Math.round(sz * 1.35)};
+  };
+  const meas = document.createElement("canvas").getContext("2d");
+  const wrap = (ctx, text, maxW) => {
+    const out = []; const words = String(text).split(/\s+/); let line = "";
+    words.forEach(w => {
+      const test = line ? line + " " + w : w;
+      if (ctx.measureText(test).width <= maxW) { line = test; return; }
+      if (line) out.push(line);
+      if (ctx.measureText(w).width <= maxW) { line = w; return; }
+      let part = "";
+      for (const ch of Array.from(w)) { if (ctx.measureText(part + ch).width > maxW && part) { out.push(part); part = ch; } else part += ch; }
+      line = part;
+    });
+    if (line) out.push(line);
+    return out.length ? out : [""];
+  };
+  const ops = []; let y = P;
+  receiptModel(b).forEach(x => {
+    const {f, lh} = fontFor(x.cls); meas.font = f;
+    if (x.k === "hr") { ops.push({hr:true, y:y + 6}); y += 14; return; }
+    if (x.k === "gap") { y += lh; return; }
+    if (x.k === "stamp") { meas.font = fontFor("big").f; ops.push({stamp:x.s, y, f:fontFor("big").f, lh:fontFor("big").lh}); y += fontFor("big").lh + 12; return; }
+    if (x.k === "c" || x.k === "l" || x.k === "r") {
+      wrap(meas, x.s, inner).forEach(line => { ops.push({text:line, f, y, align: x.k === "c" ? "center" : x.k === "r" ? "right" : "left"}); y += lh; });
+      return;
+    }
+    if (x.k === "lr") {
+      const rw = meas.measureText(x.r).width;
+      const lines = wrap(meas, x.l, Math.max(inner * 0.35, inner - rw - 12));
+      ops.push({text:x.r, f, y, align:"right"});
+      lines.forEach(line => { ops.push({text:line, f, y, align:"left"}); y += lh; });
+      return;
+    }
+    if (x.k === "cols") {
+      const tot = x.w.reduce((a, v) => a + v, 0); let acc = 0;
+      x.c.forEach((v, i) => { acc += x.w[i]; const xr = P + inner * acc / tot; const xl = P + inner * (acc - x.w[i]) / tot;
+        ops.push(i === 0 ? {text:v, f, y, align:"left", x:xl} : {text:v, f, y, align:"right", x:xr}); });
+      y += lh; return;
+    }
+  });
+  const H = Math.ceil(y + P);
+  const cv = document.createElement("canvas"); cv.width = W; cv.height = H;
+  const ctx = cv.getContext("2d");
+  ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, W, H); ctx.fillStyle = "#111"; ctx.textBaseline = "top";
+  ops.forEach(o => {
+    if (o.hr) { ctx.save(); ctx.strokeStyle = "#555"; ctx.setLineDash([6, 4]); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(P, o.y); ctx.lineTo(W - P, o.y); ctx.stroke(); ctx.restore(); return; }
+    if (o.stamp) { ctx.font = o.f; ctx.fillStyle = "#B3261E"; ctx.textAlign = "center"; const w = ctx.measureText(o.stamp).width + 24;
+      ctx.strokeStyle = "#B3261E"; ctx.lineWidth = 3; ctx.strokeRect(W / 2 - w / 2, o.y, w, o.lh + 6); ctx.fillText(o.stamp, W / 2, o.y + 4); ctx.fillStyle = "#111"; return; }
+    ctx.font = o.f; ctx.textAlign = o.align;
+    const x = o.x != null ? o.x : o.align === "center" ? W / 2 : o.align === "right" ? W - P : P;
+    ctx.fillText(o.text, x, o.y);
+  });
+  return cv;
+}
+/* Minimal PDF writer: one page holding the receipt image (JPEG). No external library needed. */
+function pdfFromJpeg(jpeg, wPx, hPx, pageWmm) {
+  const Wpt = pageWmm * 72 / 25.4, Hpt = Wpt * hPx / wPx;
+  const enc = new TextEncoder(); const parts = []; let len = 0; const off = [];
+  const push = p => { const u = typeof p === "string" ? enc.encode(p) : p; parts.push(u); len += u.length; };
+  const obj = (n, body) => { off[n] = len; push(`${n} 0 obj\n${body}\nendobj\n`); };
+  push("%PDF-1.4\n");
+  obj(1, "<< /Type /Catalog /Pages 2 0 R >>");
+  obj(2, "<< /Type /Pages /Kids [3 0 R] /Count 1 >>");
+  obj(3, `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${Wpt.toFixed(2)} ${Hpt.toFixed(2)}] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>`);
+  off[4] = len;
+  push(`4 0 obj\n<< /Type /XObject /Subtype /Image /Width ${wPx} /Height ${hPx} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpeg.length} >>\nstream\n`);
+  push(jpeg); push("\nendstream\nendobj\n");
+  const content = `q ${Wpt.toFixed(2)} 0 0 ${Hpt.toFixed(2)} 0 0 cm /Im0 Do Q`;
+  obj(5, `<< /Length ${content.length} >>\nstream\n${content}\nendstream`);
+  const xref = len;
+  let x = "xref\n0 6\n0000000000 65535 f \n";
+  for (let i = 1; i <= 5; i++) x += String(off[i]).padStart(10, "0") + " 00000 n \n";
+  push(x + `trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`);
+  return new Blob(parts, {type: "application/pdf"});
+}
+async function billPdf(b) {
+  const paper = S.settings.paper;
+  const cv = drawReceipt(b, paper);
+  const blob = await new Promise(res => cv.toBlob(res, "image/jpeg", 0.92));
+  if (!blob) throw new Error("canvas");
+  const jpeg = new Uint8Array(await blob.arrayBuffer());
+  return pdfFromJpeg(jpeg, cv.width, cv.height, paper === "A4" ? 210 : paper === "58" ? 58 : 80);
+}
+function download(name, blob) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+async function sharePdf() {
+  if (!current) return;
+  const btn = $("mShare"); btn.disabled = true;
+  try {
+    const pdf = await billPdf(current);
+    const name = current.no.replace(/[^\w.-]+/g, "_") + ".pdf";
+    let file = null; try { file = new File([pdf], name, {type: "application/pdf"}); } catch (e) {}
+    if (file && navigator.canShare && navigator.canShare({files: [file]})) {
+      try { await navigator.share({files: [file], title: name}); return; }
+      catch (e) { if (e && e.name === "AbortError") return; }
+    }
+    download(name, pdf); toast(t("pdfSaved"));
+  } catch (e) { console.error(e); toast(t("pdfFail")); }
+  finally { btn.disabled = false; }
+}
+function waText(b) {
+  const c = b.totals;
+  let s = `*${b.shop.name}*\n${t("billNo")}: ${b.no}\n${t("date")}: ${fmtDate(b.date)}\n\n`;
+  b.lines.forEach(l => s += `${(S.settings.lang === "or" && l.local) ? l.local : l.name} × ${l.qty} = ${money(r2(l.price * l.qty))}\n`);
+  s += `\n*${t("total")}: ₹${c.grand.toLocaleString("en-IN")}*`;
+  if (b.shop.regType === "regular") s += `\n(${t("gstIncl")}: ${money(c.tax)})`;
+  if (b.shop.upi) s += `\n${t("upiPay")}: ${b.shop.upi}`;
+  return s + `\n\n${t("thanks")}`;
+}
+function openReceipt(b) {
+  current = b;
+  $("receipt").innerHTML = receiptHTML(b);
+  $("printArea").innerHTML = `<div class="receipt">${receiptHTML(b)}</div>`;
+  const ph = (b.customer.phone || "").replace(/\D/g, "").slice(-10);
+  $("mWaText").href = `https://wa.me/${ph.length === 10 ? "91" + ph : ""}?text=${encodeURIComponent(waText(b))}`;
+  $("mCancelBill").hidden = b.status === "cancelled";
+  $("modal").hidden = false;
+}
+
+/* ---------------- Items ---------------- */
+function renderItems() {
+  const q = $("iFilter").value.trim().toLowerCase();
+  const list = S.products.filter(p => !q || (p.name + " " + (p.local || "") + " " + (p.hsn || "")).toLowerCase().includes(q));
+  $("iList").innerHTML = list.map(p => `
+    <li>
+      <div><b>${esc(pname(p))}</b></div>
+      <div class="m">${money(p.price)} /${esc(p.unit)} · GST ${rateLabel(p.rate)} · HSN ${esc(p.hsn || "–")}</div>
+      <div class="acts"><button class="btn ghost small" data-edit="${p.id}">${esc(t("edit"))}</button><button class="btn ghost small" style="color:var(--red)" data-delp="${p.id}">${esc(t("delete"))}</button></div>
+    </li>`).join("") || `<li class="note">${esc(S.products.length ? t("noMatch") : t("noItemsYet"))}</li>`;
+}
+function showSuggestions() {
+  const q1 = $("iHsn").value.trim().toLowerCase(), q2 = $("iName").value.trim().toLowerCase();
+  const q = q1 || q2;
+  if (q.length < 2) { $("iSugg").hidden = true; return; }
+  const words = q.split(/\s+/).filter(w => w.length > 1);
+  const hits = HSN_REF.filter(([c, d]) => c.startsWith(q1 || "\u0000") || words.some(w => d.toLowerCase().includes(w))).slice(0, 12);
+  $("iSugg").innerHTML = hits.map(([c, d, r]) => `<li><button type="button" data-ref="${c}|${r}"><span class="code">${c}</span><span class="d">${esc(d)}</span><span class="tag r${String(r).replace(".","")}">${rateLabel(r)}</span></button></li>`).join("");
+  $("iSugg").hidden = !hits.length;
+}
+function clearItemForm() {
+  editingId = null; ["iName","iLocal","iHsn","iPrice"].forEach(id => $(id).value = "");
+  $("iRate").value = "5"; $("iUnit").value = "pcs"; $("iCancel").hidden = true; $("iErr").textContent = ""; $("iSugg").hidden = true;
+  $("iTitle").textContent = t("addItem");
+}
+async function saveItem() {
+  const name = $("iName").value.trim(), local = $("iLocal").value.trim(), hsn = $("iHsn").value.trim();
+  const priceRaw = $("iPrice").value.trim(), price = parseFloat(priceRaw), rate = parseFloat($("iRate").value);
+  if ((!name && !local) || priceRaw === "" || !(price >= 0)) { $("iErr").textContent = t("needItem"); return; }
+  if (hsn && !/^(\d{4}|\d{6}|\d{8})$/.test(hsn)) { $("iErr").textContent = t("badHsn"); return; }
+  const data = {name: name || local, local, hsn, price: r2(price), rate: RATES.includes(rate) ? rate : 18, unit: $("iUnit").value};
+  if (editingId) { const p = S.products.find(x => x.id === editingId); if (p) Object.assign(p, data); }
+  else S.products.unshift({id: uid(), ...data});
+  await save("products"); clearItemForm(); renderAll(); toast(t("saved"));
+}
+
+/* CSV */
+function parseCSV(text) {
+  const rows = []; let row = [], f = "", q = false;
+  text = text.replace(/^\uFEFF/, "");
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (q) { if (ch === '"') { if (text[i + 1] === '"') { f += '"'; i++; } else q = false; } else f += ch; }
+    else if (ch === '"') q = true;
+    else if (ch === ",") { row.push(f); f = ""; }
+    else if (ch === "\n" || ch === "\r") { if (ch === "\r" && text[i + 1] === "\n") i++; row.push(f); rows.push(row); row = []; f = ""; }
+    else f += ch;
+  }
+  if (f !== "" || row.length) { row.push(f); rows.push(row); }
+  return rows.filter(r => r.some(c => c.trim() !== ""));
+}
+const csvCell = v => { const s = String(v == null ? "" : v); return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+const toCSV = rows => "\uFEFF" + rows.map(r => r.map(csvCell).join(",")).join("\r\n");
+async function importCSV(file) {
+  const rows = parseCSV(await file.text()); if (!rows.length) { toast(t("importNone")); return; }
+  const head = rows[0].map(h => h.trim().toLowerCase());
+  const idx = k => head.indexOf(k);
+  const hasHead = idx("name") >= 0;
+  const I = hasHead ? {name:idx("name"), hsn:idx("hsn"), rate:idx("gst_rate"), price:idx("price"), unit:idx("unit"), local:idx("name_odia")} : {name:0, hsn:1, rate:2, price:3, unit:4, local:5};
+  let n = 0;
+  (hasHead ? rows.slice(1) : rows).forEach(r => {
+    const g = k => I[k] >= 0 && r[I[k]] != null ? String(r[I[k]]).trim() : "";
+    const name = g("name"), price = parseFloat(g("price")), rate = parseFloat(String(g("rate")).replace("%", "")), hsn = g("hsn").replace(/\s/g, "");
+    if (!name || !(price >= 0) || !RATES.includes(rate)) return;
+    if (hsn && !/^(\d{4}|\d{6}|\d{8})$/.test(hsn)) return;
+    const unit = UNITS.includes(g("unit")) ? g("unit") : "pcs";
+    const ex = S.products.find(p => p.name.toLowerCase() === name.toLowerCase());
+    const data = {name, local: g("local"), hsn, price: r2(price), rate, unit};
+    if (ex) Object.assign(ex, data); else S.products.push({id: uid(), ...data});
+    n++;
+  });
+  if (!n) { toast(t("importNone")); return; }
+  await save("products"); renderAll(); toast(`${n} ${t("imported")}`);
+}
+
+/* ---------------- Sales ---------------- */
+function billsInRange() {
+  const now = new Date();
+  return S.bills.filter(b => {
+    const d = new Date(b.date);
+    if (salesRange === "today") return d.toDateString() === now.toDateString();
+    if (salesRange === "month") return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    return true;
+  });
+}
+function renderSales() {
+  document.querySelectorAll("[data-range]").forEach(b => b.setAttribute("aria-pressed", b.dataset.range === salesRange));
+  const list = billsInRange(), ok = list.filter(b => b.status !== "cancelled");
+  $("stSales").textContent = "₹" + ok.reduce((a, b) => a + b.totals.grand, 0).toLocaleString("en-IN");
+  $("stGst").textContent = money(r2(ok.reduce((a, b) => a + b.totals.tax, 0)));
+  $("stCount").textContent = ok.length;
+  $("blist").innerHTML = list.length ? list.map(b => `
+    <li><button data-bill="${b.id}" class="${b.status === "cancelled" ? "x" : ""}">
+      <span class="bn">${esc(b.no)} · ${esc(b.customer.name || t("walkin"))}</span>
+      <span class="bm">${fmtDate(b.date)} · ${b.lines.length} ${esc(t("items"))}${b.status === "cancelled" ? " · " + esc(t("cancelled")) : ""}</span>
+      <span class="bt">₹${b.totals.grand.toLocaleString("en-IN")}</span>
+    </button></li>`).join("") : `<li class="emptybox">${esc(t("noBills"))}</li>`;
+}
+function gstReport() {
+  const rows = [["bill_no","date","status","customer_name","customer_gstin","place_of_supply","gst_rate","taxable_value","cgst","sgst","igst","bill_total"]];
+  billsInRange().slice().reverse().forEach(b => {
+    b.totals.groups.forEach(g => {
+      const [cg, sg] = b.inter ? [0, 0] : splitTax(g.tax);
+      rows.push([b.no, fmtDate(b.date).slice(0, 10), b.status, b.customer.name, b.customer.gstin, b.pos + "-" + stateName(b.pos), g.rate,
+        g.taxable.toFixed(2), cg.toFixed(2), sg.toFixed(2), (b.inter ? g.tax : 0).toFixed(2), b.totals.grand.toFixed(2)]);
+    });
+  });
+  download(`gst-report-${salesRange}-${new Date().toISOString().slice(0, 10)}.csv`, new Blob([toCSV(rows)], {type: "text/csv"}));
+}
+
+/* ---------------- Settings ---------------- */
+function fillBillSettings() {
+  const s = S.settings;
+  $("sPrefix").value = s.prefix; $("sPaper").value = s.paper; $("sUpi").value = s.upi; $("sLang").value = s.lang;
+  $("sFooter").value = s.footer; $("sIncl").checked = s.inclusive;
+}
+
+/* ---------------- Render ---------------- */
+function renderAll() {
+  $("hdrShop").textContent = S.settings.name;
+  const pos = $("cPos");
+  if (!pos.options.length) pos.innerHTML = STATES.map(s => `<option value="${s[0]}">${s[0]} – ${esc(s[1])}</option>`).join("");
+  if (!pos.dataset.touched) pos.value = S.settings.state;
+  applyPaper();
+  if (tab === "bill") { renderPicker(); renderCart(); }
+  if (tab === "items") renderItems();
+  if (tab === "sales") renderSales();
+  if (tab === "settings") { fillBizForm("st"); fillBillSettings(); }
+}
+
+/* ---------------- Events ---------------- */
+document.addEventListener("click", async e => {
+  const b = e.target.closest("button"); if (!b) return;
+  const d = b.dataset;
+  if (d.tab) { setTab(d.tab); return; }
+  if (d.add) { addToCart(d.add); return; }
+  if (d.inc !== undefined) { const l = cart[+d.inc]; if (l) { l.qty = r2(l.qty + 1); renderCart(); } return; }
+  if (d.dec !== undefined) { const i = +d.dec, l = cart[i]; if (l) { l.qty = r2(l.qty - 1); if (l.qty <= 0) cart.splice(i, 1); renderCart(); } return; }
+  if (d.rm !== undefined) { cart.splice(+d.rm, 1); renderCart(); return; }
+  if (d.edit) {
+    const p = S.products.find(x => x.id === d.edit); if (!p) return;
+    editingId = p.id; $("iName").value = p.name; $("iLocal").value = p.local || ""; $("iHsn").value = p.hsn || "";
+    $("iPrice").value = p.price; $("iRate").value = String(p.rate); $("iUnit").value = p.unit || "pcs";
+    $("iCancel").hidden = false; $("iTitle").textContent = t("editItem"); $("iErr").textContent = ""; window.scrollTo(0, 0); return;
+  }
+  if (d.delp) { if (!confirm(t("deleteItemConfirm"))) return; S.products = S.products.filter(p => p.id !== d.delp); await save("products"); renderItems(); toast(t("deleted")); return; }
+  if (d.ref) { const [c, r] = d.ref.split("|"); $("iHsn").value = c; $("iRate").value = r; $("iSugg").hidden = true; return; }
+  if (d.range) { salesRange = d.range; renderSales(); return; }
+  if (d.bill) { const bill = S.bills.find(x => x.id === d.bill); if (bill) openReceipt(bill); return; }
+});
+document.addEventListener("change", e => {
+  const i = e.target.dataset.qty;
+  if (i !== undefined) { const v = parseFloat(e.target.value); if (!(v > 0)) cart.splice(+i, 1); else cart[+i].qty = r2(v); renderCart(); }
+});
+$("q").addEventListener("input", renderPicker);
+$("iFilter").addEventListener("input", renderItems);
+$("iHsn").addEventListener("input", showSuggestions);
+$("iName").addEventListener("input", showSuggestions);
+$("cGstin").addEventListener("input", () => { $("cGstin").value = $("cGstin").value.toUpperCase(); if ($("cGstin").value.length === 15 || !$("cGstin").value) { checkCustGstin(); $("cPos").dataset.touched = "1"; renderSum(); } });
+$("cPos").addEventListener("change", () => { $("cPos").dataset.touched = "1"; renderSum(); });
+$("makeBill").addEventListener("click", makeBill);
+$("iSave").addEventListener("click", saveItem);
+$("iCancel").addEventListener("click", clearItemForm);
+$("iImport").addEventListener("click", () => $("iFile").click());
+$("iFile").addEventListener("change", e => { const f = e.target.files[0]; if (f) importCSV(f); e.target.value = ""; });
+$("iExport").addEventListener("click", () => {
+  const rows = [["name","hsn","gst_rate","price","unit","name_odia"]].concat(S.products.map(p => [p.name, p.hsn, p.rate, p.price, p.unit, p.local]));
+  download("hisab-items.csv", new Blob([toCSV(rows)], {type: "text/csv"}));
+});
+$("gstReport").addEventListener("click", gstReport);
+$("sSave2").addEventListener("click", async () => {
+  const s = S.settings, oldLang = s.lang;
+  s.prefix = ($("sPrefix").value.trim() || "INV-").replace(/[^A-Za-z0-9\/-]/g, "").slice(0, 8) || "INV-";
+  s.paper = $("sPaper").value; s.upi = $("sUpi").value.trim(); s.lang = $("sLang").value;
+  s.footer = $("sFooter").value.trim(); s.inclusive = $("sIncl").checked;
+  await save("settings"); toast(t("saved"));
+  if (s.lang !== oldLang) applyLang(); else renderAll();
+});
+$("langBtn").addEventListener("click", async () => { S.settings.lang = S.settings.lang === "or" ? "en" : "or"; await save("settings"); applyLang(); });
+$("setupLang").addEventListener("click", async () => { S.settings.lang = S.settings.lang === "or" ? "en" : "or"; applyLang(); });
+$("backupBtn").addEventListener("click", () => {
+  const data = {app: "hisab", version: 1, exported: new Date().toISOString(), settings: S.settings, products: S.products, bills: S.bills, meta: S.meta};
+  download(`hisab-backup-${new Date().toISOString().slice(0, 10)}.json`, new Blob([JSON.stringify(data)], {type: "application/json"}));
+});
+$("restoreBtn").addEventListener("click", () => $("restoreFile").click());
+$("restoreFile").addEventListener("change", async e => {
+  const f = e.target.files[0]; e.target.value = ""; if (!f) return;
+  let data; try { data = JSON.parse(await f.text()); } catch (err) { data = null; }
+  if (!data || data.app !== "hisab" || !Array.isArray(data.products) || !Array.isArray(data.bills) || !data.settings) { toast(t("badBackup")); return; }
+  if (!confirm(t("restoreConfirm"))) return;
+  S.settings = {...DEFAULT_SETTINGS, ...data.settings}; S.products = data.products; S.bills = data.bills;
+  const bm = data.meta || {};
+  S.meta = {counter: Number(bm.counter) || data.bills.length,
+    trialStart: new Date(Math.min(new Date(S.meta.trialStart).getTime(), new Date(bm.trialStart || S.meta.trialStart).getTime() || Infinity)).toISOString(),
+    maxSeen: Math.max(Number(S.meta.maxSeen) || 0, Number(bm.maxSeen) || 0)};
+  await Promise.all(["settings","products","bills","meta"].map(save));
+  cart = []; applyLang(); await refreshLicense(); toast(t("restored"));
+});
+$("eraseBtn").addEventListener("click", async () => {
+  if (!confirm(t("eraseConfirm"))) return;
+  const lang = S.settings.lang;
+  S = {settings: {...DEFAULT_SETTINGS, lang}, products: [], bills: [], meta: {counter: 0, trialStart: S.meta.trialStart, maxSeen: S.meta.maxSeen}};
+  await Promise.all(["settings","products","bills","meta"].map(save));
+  cart = []; applyLang(); setTab("bill"); await refreshLicense(); $("setup").hidden = false; toast(t("erased"));
+});
+$("mClose").addEventListener("click", () => $("modal").hidden = true);
+$("modal").addEventListener("click", e => { if (e.target.id === "modal") $("modal").hidden = true; });
+$("mPrint").addEventListener("click", () => window.print());
+$("mShare").addEventListener("click", sharePdf);
+$("mCancelBill").addEventListener("click", async () => {
+  if (!current || !confirm(t("cancelConfirm"))) return;
+  current.status = "cancelled"; await save("bills"); openReceipt(current); renderAll(); toast(t("billCancelled"));
+});
+document.addEventListener("keydown", e => { if (e.key === "Escape") { $("modal").hidden = true; $("licModal").hidden = true; } });
+$("licBadge").addEventListener("click", openLicense);
+$("sLicOpen").addEventListener("click", openLicense);
+$("licClose").addEventListener("click", () => $("licModal").hidden = true);
+$("licModal").addEventListener("click", e => { if (e.target.id === "licModal") $("licModal").hidden = true; });
+$("licActivate").addEventListener("click", activateKey);
+$("licCopy").addEventListener("click", async () => {
+  const id = businessId(); if (!id) return;
+  try { await navigator.clipboard.writeText(id); toast(t("copied")); }
+  catch (e) { const r = document.createRange(); r.selectNodeContents($("licBid")); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); }
+});
+
+/* Install prompt (Chrome / Edge on Android, Windows, Mac, Linux) */
+window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); deferredInstall = e; $("installBtn").hidden = false; });
+$("installBtn").addEventListener("click", async () => {
+  if (!deferredInstall) return;
+  deferredInstall.prompt(); await deferredInstall.userChoice.catch(() => null);
+  deferredInstall = null; $("installBtn").hidden = true;
+});
+window.addEventListener("appinstalled", () => { $("installBtn").hidden = true; });
+
+/* ---------------- Start ---------------- */
+(async function init() {
+  $("iUnit").innerHTML = UNITS.map(u => `<option value="${u}">${u}</option>`).join("");
+  await Store.open();
+  const [settings, products, bills, meta] = await Promise.all(["settings","products","bills","meta"].map(k => Store.get(k)));
+  if (settings) S.settings = {...DEFAULT_SETTINGS, ...settings};
+  if (Array.isArray(products)) S.products = products;
+  if (Array.isArray(bills)) S.bills = bills;
+  if (meta && typeof meta.counter === "number") S.meta = meta;
+  let mirror = null; try { mirror = localStorage.getItem("hisab:trialStartMirror"); } catch (e) {}
+  const starts = [S.meta.trialStart, mirror].map(x => x ? new Date(x).getTime() : NaN).filter(x => !isNaN(x));
+  S.meta.trialStart = new Date(starts.length ? Math.min(...starts) : Date.now()).toISOString();
+  S.meta.maxSeen = nowTrusted();
+  try { localStorage.setItem("hisab:trialStartMirror", S.meta.trialStart); } catch (e) {}
+  await save("meta");
+  applyLang(); setTab("bill"); await refreshLicense();
+  if (!S.settings.name) $("setup").hidden = false;
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+  if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost" || location.hostname === "127.0.0.1")) {
+    navigator.serviceWorker.register("sw.js").catch(err => console.warn("SW", err));
+  }
+})();
+</script>
+</body>
+</html>
